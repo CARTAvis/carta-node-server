@@ -1,0 +1,6 @@
+.idea/*
+.vscode/*
+node_modules/*
+
+# config.js should be user-generated from template
+config.js

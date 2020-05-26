@@ -1,0 +1,7 @@
+module.exports = {
+    dummyUsername: "angus",
+    dummyPassword: "helloworld",
+    secret: "forbritisheyesonly",
+    tokenName: "myAccessToken",
+    backendSocket: 3002
+  };

@@ -6,5 +6,6 @@ module.exports = {
     dummyPassword: "helloworld",
     keyAlgorithm: "RS256",
     tokenName: "cartaAccessToken",
-    backendSocket: 3002
+    backendSocket: 3002,
+    processCommand: "/path/to/carta/backend"
   };

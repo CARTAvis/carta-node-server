@@ -1,7 +1,9 @@
 module.exports = {
     dummyUsername: "angus",
-    dummyPassword: "helloworld",
-    secret: "forbritisheyesonly",
-    tokenName: "myAccessToken",
+    dummyPassword: "helloworld",    
+    privateKeyLocation: "/path/to/your/private/key_in_pem_format",    
+    publicKeyLocation: "/path/to/your/public/key_in_pem_format",
+    keyAlgorithm: "RS256",
+    tokenName: "cartaAccessToken",
     backendSocket: 3002
   };

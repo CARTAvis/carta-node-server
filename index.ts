@@ -16,8 +16,6 @@ const publicKey = fs.readFileSync(config.publicKeyLocation);
 const childMap = new Map<string, ChildProcess>();
 
 let app = express();
-const port = process.env.PORT || 8000;
-
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 app.use(cookieParser());
@@ -116,7 +114,7 @@ const handleStart = async (req: AuthenticatedRequest, res: express.Response) => 
 
     // Spawn a new process
     try {
-        const child = spawn("sudo", ["-u", `${req.username}`, config.processCommand]);
+        const child = spawn("sudo", ["-u", `${req.username}`, config.processCommand, "-port", `${config.backendPort}`]);
         child.stdout.on("data", data => console.log(data.toString()));
 
         // Check for early exit of backend process
@@ -138,4 +136,4 @@ const handleStart = async (req: AuthenticatedRequest, res: express.Response) => 
 app.post("/start", authGuard, handleStart);
 app.get("/checkStatus", authGuard, handleStatus);
 
-app.listen(port, () => console.log(`Started listening for login requests on port ${port}`));
+app.listen(config.serverPort, () => console.log(`Started listening for login requests on port ${config.serverPort}`));

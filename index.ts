@@ -3,7 +3,7 @@ import * as bodyParser from "body-parser";
 import * as cookieParser from "cookie-parser";
 import * as jwt from "jsonwebtoken";
 import * as fs from "fs";
-import {spawn, ChildProcess} from "child_process";
+import {spawn, spawnSync, ChildProcess} from "child_process";
 
 // Simple type intersection for adding custom username field to an express request
 type AuthenticatedRequest = express.Request & { username?: string, jwt?: string };
@@ -22,6 +22,11 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
+const delay = async (delay: number) => {
+    return new Promise<void>(resolve => {
+        setTimeout(() => resolve(), delay);
+    })
+}
 
 // Optional login route that uses a private key to sign a JWT after authorising
 if (config.handleTokenSigning) {
@@ -88,7 +93,7 @@ const handleStatus = (req: AuthenticatedRequest, res: express.Response) => {
     });
 }
 
-const handleStart = (req: AuthenticatedRequest, res: express.Response) => {
+const handleStart = async (req: AuthenticatedRequest, res: express.Response) => {
     if (!req.username) {
         res.status(400).json({success: false, message: "Invalid username"});
     }
@@ -97,9 +102,10 @@ const handleStart = (req: AuthenticatedRequest, res: express.Response) => {
     try {
         const currentChild = childMap.get(req.username);
         if (currentChild) {
-            currentChild.removeAllListeners();
-            currentChild.kill();
-            console.log(`Killed existing process ${currentChild.pid}`);
+            // Kill the process via the kill script
+            spawnSync("sudo", ["-u", `${req.username}`, config.killCommand, `${currentChild.pid}`]);
+            // Delay to allow the parent process to exit
+            await delay(10);
             childMap.delete(req.username);
         }
     } catch (e) {
@@ -112,13 +118,16 @@ const handleStart = (req: AuthenticatedRequest, res: express.Response) => {
     try {
         const child = spawn("sudo", ["-u", `${req.username}`, config.processCommand]);
         child.stdout.on("data", data => console.log(data.toString()));
-        child.on('exit', (code, signal) => {
-            console.log(`Exited via signal ${signal} and code ${code}`);
-        });
-        console.log(`Started process with PID ${child.pid} for user ${req.username}`);
-        child.pid
-        childMap.set(req.username, child);
-        res.json({success: true, username: req.username, token: req.jwt});
+
+        // Check for early exit of backend process
+        await delay(config.startDelay);
+        if (child.exitCode || child.signalCode) {
+            res.status(400).json({success: false, message: `Process terminated within ${config.startDelay} ms`});
+        } else {
+            console.log(`Started process with PID ${child.pid} for user ${req.username}`);
+            childMap.set(req.username, child);
+            res.json({success: true, username: req.username, token: req.jwt});
+        }
     } catch (e) {
         console.log(`Error killing existing process belonging to user ${req.username}`);
         res.status(400).json({success: false, message: `Problem starting process for user ${req.username}`});

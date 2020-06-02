@@ -7,5 +7,7 @@ module.exports = {
     keyAlgorithm: "RS256",
     tokenName: "cartaAccessToken",
     backendSocket: 3002,
-    processCommand: "/path/to/carta/backend"
+    processCommand: "/path/to/carta/backend",
+    killCommand: "/path/to/carta/kill/script",
+    startDelay: 100
   };

@@ -3,6 +3,7 @@ import * as bodyParser from "body-parser";
 import * as cookieParser from "cookie-parser";
 import * as jwt from "jsonwebtoken";
 import * as fs from "fs";
+import * as userid from "userid";
 import {spawn, spawnSync, ChildProcess} from "child_process";
 
 // Simple type intersection for adding custom username field to an express request
@@ -12,8 +13,27 @@ type AuthenticatedRequest = express.Request & { username?: string, jwt?: string 
 const config = require("./config.ts");
 const publicKey = fs.readFileSync(config.publicKeyLocation);
 
-// Child processes
-const childMap = new Map<string, ChildProcess>();
+// Child processes and ports mapped to users
+const processMap = new Map<string, { process: ChildProcess, port: number }>();
+
+const nextAvailablePort = () => {
+    if (!processMap.size) {
+        return config.backendPorts.min;
+    }
+
+    // Get a map of all the ports in the range currently in use
+    let existingPorts = new Map<number, boolean>();
+    processMap.forEach(value => {
+        existingPorts.set(value.port, true);
+    })
+
+    for (let p = config.backendPorts.min; p < config.backendPorts.max; p++) {
+        if (!existingPorts.has(p)) {
+            return p;
+        }
+    }
+}
+
 
 let app = express();
 app.use(bodyParser.urlencoded({extended: true}));
@@ -37,16 +57,25 @@ if (config.handleTokenSigning) {
 
         const username = req.body.username;
         const password = req.body.password;
-        // Dummy auth
-        if (username !== config.dummyUsername || password !== config.dummyPassword) {
+
+
+        // Dummy auth: always accept
+        if (!username || !password) {
             res.status(403).json({success: false, message: "Invalid username/password combo"});
         } else {
-            const token = jwt.sign({
-                username: username,
-                backendSocket: config.backendSocket
-            }, privateKey, {algorithm: config.keyAlgorithm, expiresIn: '1h'});
-            res.cookie(config.tokenName, token, {maxAge: 1000 * 60 * 60});
-            res.json({success: true, message: "Successfully authenticated"});
+            // verify that user exists on the system
+            try {
+                const uid = userid.uid(username);
+                console.log(`Authenticated as user ${username} with uid ${uid}`);
+                const token = jwt.sign({
+                    username: username,
+                    backendSocket: config.backendSocket
+                }, privateKey, {algorithm: config.keyAlgorithm, expiresIn: '1h'});
+                res.cookie(config.tokenName, token, {maxAge: 1000 * 60 * 60});
+                res.json({success: true, message: "Successfully authenticated"});
+            } catch (e) {
+                res.status(403).json({success: false, message: "Invalid username/password combo"});
+            }
         }
     }
     app.post("/login", handleLogin);
@@ -98,13 +127,13 @@ const handleStart = async (req: AuthenticatedRequest, res: express.Response) => 
 
     // Kill existing backend process for this
     try {
-        const currentChild = childMap.get(req.username);
-        if (currentChild) {
+        const existingProcess = processMap.get(req.username);
+        if (existingProcess) {
             // Kill the process via the kill script
-            spawnSync("sudo", ["-u", `${req.username}`, config.killCommand, `${currentChild.pid}`]);
+            spawnSync("sudo", ["-u", `${req.username}`, config.killCommand, `${existingProcess.process.pid}`]);
             // Delay to allow the parent process to exit
             await delay(10);
-            childMap.delete(req.username);
+            processMap.delete(req.username);
         }
     } catch (e) {
         console.log(`Error killing existing process belonging to user ${req.username}`);
@@ -114,7 +143,8 @@ const handleStart = async (req: AuthenticatedRequest, res: express.Response) => 
 
     // Spawn a new process
     try {
-        const child = spawn("sudo", ["-u", `${req.username}`, config.processCommand, "-port", `${config.backendPort}`]);
+        const port = nextAvailablePort();
+        const child = spawn("sudo", ["-u", `${req.username}`, config.processCommand, "-port", `${port}`]);
         child.stdout.on("data", data => console.log(data.toString()));
 
         // Check for early exit of backend process
@@ -122,9 +152,9 @@ const handleStart = async (req: AuthenticatedRequest, res: express.Response) => 
         if (child.exitCode || child.signalCode) {
             res.status(400).json({success: false, message: `Process terminated within ${config.startDelay} ms`});
         } else {
-            console.log(`Started process with PID ${child.pid} for user ${req.username}`);
-            childMap.set(req.username, child);
-            res.json({success: true, username: req.username, token: req.jwt});
+            console.log(`Started process with PID ${child.pid} for user ${req.username} on port ${port}`);
+            processMap.set(req.username, {port, process: child});
+            res.json({success: true, username: req.username, token: req.jwt, port});
         }
     } catch (e) {
         console.log(`Error killing existing process belonging to user ${req.username}`);

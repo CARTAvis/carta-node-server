@@ -71,7 +71,7 @@ if (config.handleTokenSigning) {
                     username: username,
                     backendSocket: config.backendSocket
                 }, privateKey, {algorithm: config.keyAlgorithm, expiresIn: '1h'});
-                res.cookie(config.tokenName, token, {maxAge: 1000 * 60 * 60});
+                res.cookie("CARTA-Authorization", token, {maxAge: 1000 * 60 * 60});
                 res.json({success: true, message: "Successfully authenticated"});
             } catch (e) {
                 res.status(403).json({success: false, message: "Invalid username/password combo"});
@@ -87,7 +87,7 @@ if (config.handleTokenSigning) {
 
 // This can easily be replaced by another strategy for getting the token from a request
 const getTokenFromCookie = (req: express.Request) => {
-    return req.cookies?.[config.tokenName];
+    return req.cookies?.["CARTA-Authorization"];
 }
 
 const getTokenFromBody = (req: express.Request) => {

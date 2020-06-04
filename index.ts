@@ -59,8 +59,8 @@ if (config.handleTokenSigning) {
         const password = req.body.password;
 
 
-        // Dummy auth: always accept
-        if (!username || !password) {
+        // Dummy auth: always accept as long as password matches dummy password
+        if (!username || password !== config.dummyPassword) {
             res.status(403).json({success: false, message: "Invalid username/password combo"});
         } else {
             // verify that user exists on the system

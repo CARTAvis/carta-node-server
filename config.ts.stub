@@ -4,6 +4,7 @@ module.exports = {
     handleTokenSigning: true,
     privateKeyLocation: "/path/to/your/private/key_in_pem_format",
     keyAlgorithm: "RS256",
+    dummyPassword: "helloworld",
     tokenName: "cartaAccessToken",
     serverPort: 8000
     backendPorts: {min: 3002, max: 3100},

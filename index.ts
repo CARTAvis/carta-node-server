@@ -78,9 +78,9 @@ if (config.handleTokenSigning) {
             }
         }
     }
-    app.post("/login", handleLogin);
+    app.post("/api/login", handleLogin);
 } else {
-    app.post("/login", ((req, res) => {
+    app.post("/api/login", ((req, res) => {
         res.status(400).json({success: false, message: "Login not implemented"});
     }))
 }
@@ -163,7 +163,7 @@ const handleStart = async (req: AuthenticatedRequest, res: express.Response) => 
     }
 }
 
-app.post("/start", authGuard, handleStart);
-app.get("/checkStatus", authGuard, handleStatus);
+app.post("/api/start", authGuard, handleStart);
+app.get("/api/checkStatus", authGuard, handleStatus);
 
 app.listen(config.serverPort, () => console.log(`Started listening for login requests on port ${config.serverPort}`));

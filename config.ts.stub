@@ -1,14 +1,21 @@
 module.exports = {
-	// jwtType can be "local" (to use a local public key) or "google" to use google OAuth2
-	jwtType: "local",
-    publicKeyLocation: "/path/to/your/public/key_in_pem_format",
-    // If jwtType is "google", the client ID is needed
-    googleClientId: "<CLIENTID>.apps.googleusercontent.com"
-    // If the server handles token signing, we need a private key and a dummy login
-    handleTokenSigning: true,
-    privateKeyLocation: "/path/to/your/private/key_in_pem_format",
-    keyAlgorithm: "RS256",
-    dummyPassword: "helloworld",
+	// One or more authProvider must be defined
+	authProviders: {
+		// Local email/password authentication
+		// Currently just uses a dummy password, but a PAM service would be appropriate
+		local: {
+			publicKeyLocation: "/path/to/your/public/key_in_pem_format",
+			privateKeyLocation: "/path/to/your/private/key_in_pem_format",
+			keyAlgorithm: "RS256",
+			dummyPassword: "helloworld",
+			issuer: "some-identifier",
+			// Can skip user lookup when authenticating as a local user
+			bypassLookup: true
+		},
+		google: {
+			clientId: "<CLIENTID>.apps.googleusercontent.com"
+		}
+	},
     // Port to listen on. It is advised to listen on a port other than 80 or 443, behind an SSL proxy
     serverPort: 8000
     // Range of ports to user for backend processes. Effectively limits the number of simultaneous users
@@ -17,6 +24,8 @@ module.exports = {
     // The <username> placeholder will be replaced with the username
     rootFolderTemplate: "/path/to/user/root/<username>",
     baseFolderTemplate: "/path/to/user/base/<username>",
+    // Additional arguments to be passed to the backend process, defined as an array of strings
+    additionalArgs: ["-threads", "4", "-omp_threads", "4"],
     // User lookup table as text file in format <email address> <username>. If no user lookup is needed, leave this blank
     userLookupTable: "/path/to/user/lookup/table",
     killCommand: "/path/to/carta/kill/script",

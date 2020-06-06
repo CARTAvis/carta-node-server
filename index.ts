@@ -6,21 +6,70 @@ import * as cookie from "cookie";
 import * as jwt from "jsonwebtoken";
 import * as fs from "fs";
 import * as userid from "userid";
-import {spawn, spawnSync, ChildProcess} from "child_process";
+import {ChildProcess, spawn, spawnSync} from "child_process";
 import {OAuth2Client} from "google-auth-library";
 
 // Simple type intersection for adding custom username field to an express request
 type AuthenticatedRequest = express.Request & { username?: string, jwt?: string };
+type Verifier = (cookieString: string) => any;
+
+let app = express();
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.json());
+app.use(cookieParser());
 
 // Auth config
 const config = require("./config.ts");
-let verifyToken;
+// maps JWT claim "iss" to a token verifier
+const tokenVerifiers = new Map<string, Verifier>();
 
-if (config.jwtType === "google") {
+if (config.authProviders.local) {
+    const publicKey = fs.readFileSync(config.authProviders.local.publicKeyLocation);
+    tokenVerifiers.set(config.authProviders.local.issuer, (cookieString) => {
+        return jwt.verify(cookieString, publicKey, {algorithm: config.authProviders.local.keyAlgorithm});
+    });
+
+    const privateKey = fs.readFileSync(config.authProviders.local.privateKeyLocation);
+    app.post("/api/login", (req, res) => {
+        if (!req.body) {
+            res.status(400).json({success: false, message: "Malformed login request"});
+            return;
+        }
+
+        // Lookup user in usermap if it exists
+        let username = getUser(req.body.username, config.authProviders.local.issuer);
+        const password = req.body.password;
+
+        // Dummy auth: always accept as long as password matches dummy password
+        if (!username || password !== config.authProviders.local.dummyPassword) {
+            res.status(403).json({success: false, message: "Invalid username/password combo"});
+        } else {
+            // verify that user exists on the system
+            try {
+                const uid = userid.uid(username);
+                console.log(`Authenticated as user ${username} with uid ${uid}`);
+                const token = jwt.sign({iss: config.authProviders.local.issuer, username: req.body.username}, privateKey, {
+                    algorithm: config.authProviders.local.keyAlgorithm,
+                    expiresIn: '1h'
+                });
+                res.cookie("CARTA-Authorization", token, {maxAge: 1000 * 60 * 60});
+                res.json({success: true, message: "Successfully authenticated"});
+            } catch (e) {
+                res.status(403).json({success: false, message: "Invalid username/password combo"});
+            }
+        }
+    });
+} else {
+    app.post("/api/login", (req, res) => {
+        res.status(400).json({success: false, message: "Login not implemented"});
+    });
+}
+
+if (config.authProviders.google) {
     const googleAuthClient = new OAuth2Client(config.googleClientId);
-    verifyToken = async (cookie) => {
+    tokenVerifiers.set("accounts.google.com", async (cookieString) => {
         const ticket = await googleAuthClient.verifyIdToken({
-            idToken: cookie,
+            idToken: cookieString,
             audience: config.googleClientId
         });
         const payload = ticket.getPayload();
@@ -28,10 +77,24 @@ if (config.jwtType === "google") {
         if (payload && payload.email && payload.email_verified) {
             return {...payload, username: payload.email};
         }
-    };
-} else {
-    const publicKey = fs.readFileSync(config.publicKeyLocation);
-    verifyToken = (cookie) => jwt.verify(cookie, publicKey, {algorithm: config.keyAlgorithm});
+    });
+}
+
+// Check for empty token verifies
+if (!tokenVerifiers.size) {
+    console.error("No valid token verifiers specified");
+    process.exit(1);
+}
+
+const verifyToken = async (cookieString: string) => {
+    const tokenJson = jwt.decode(cookieString);
+    if (tokenJson && tokenJson.iss) {
+        const verifier = tokenVerifiers.get(tokenJson.iss);
+        if (verifier) {
+            return await verifier(cookieString);
+        }
+    }
+    return undefined;
 }
 
 // Child processes and ports mapped to users
@@ -72,7 +135,10 @@ if (config.userLookupTable) {
     fs.watchFile(config.userLookupTable, readUserTable);
 }
 
-const getUser = (username: string) => {
+const getUser = (username: string, issuer: string) => {
+    if (config.authProviders?.local?.bypassLookup && issuer === config.authProviders.local.issuer) {
+        return username;
+    }
     if (userMap) {
         return userMap.get(username);
     } else {
@@ -99,64 +165,17 @@ const nextAvailablePort = () => {
     return -1;
 }
 
-
-let app = express();
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(bodyParser.json());
-app.use(cookieParser());
-
 const delay = async (delay: number) => {
     return new Promise<void>(resolve => {
         setTimeout(() => resolve(), delay);
     })
 }
 
-// Optional login route that uses a private key to sign a JWT after authorising
-if (config.handleTokenSigning) {
-    const privateKey = fs.readFileSync(config.privateKeyLocation);
-    const handleLogin = (req, res) => {
-        if (!req.body) {
-            res.status(400).json({success: false, message: "Malformed login request"});
-            return;
-        }
-
-        // Lookup user in usermap if it exists
-        const username = getUser(req.body.username);
-        const password = req.body.password;
-
-        // Dummy auth: always accept as long as password matches dummy password
-        if (!username || password !== config.dummyPassword) {
-            res.status(403).json({success: false, message: "Invalid username/password combo"});
-        } else {
-            // verify that user exists on the system
-            try {
-                const uid = userid.uid(username);
-                console.log(`Authenticated as user ${username} with uid ${uid}`);
-                const token = jwt.sign({username: req.body.username}, privateKey, {algorithm: config.keyAlgorithm, expiresIn: '1h'});
-                res.cookie("CARTA-Authorization", token, {maxAge: 1000 * 60 * 60});
-                res.json({success: true, message: "Successfully authenticated"});
-            } catch (e) {
-                res.status(403).json({success: false, message: "Invalid username/password combo"});
-            }
-        }
-    }
-    app.post("/api/login", handleLogin);
-} else {
-    app.post("/api/login", ((req, res) => {
-        res.status(400).json({success: false, message: "Login not implemented"});
-    }))
-}
-
-// This can easily be replaced by another strategy for getting the token from a request
-const getTokenFromCookie = (req: express.Request) => {
+// This can easily be replaced by another strategy for getting the token from a request. However, it's
+// easier to user cookies for the websocket proxy, since we can't specify custom headers in the browser.
+const getToken = (req: express.Request) => {
     return req.cookies?.["CARTA-Authorization"];
 }
-
-const getTokenFromBody = (req: express.Request) => {
-    return req.body?.token;
-}
-
-const getToken = getTokenFromCookie;
 
 // Express middleware to guard against unauthorized access. Writes the username and jwt to the request object
 const authGuard = async (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
@@ -164,9 +183,13 @@ const authGuard = async (req: AuthenticatedRequest, res: express.Response, next:
     if (tokenCookie) {
         try {
             const token = await verifyToken(tokenCookie);
-            req.username = getUser(token.username);
-            req.jwt = tokenCookie;
-            next();
+            if (!token || !token.username) {
+                res.status(403).json({success: false, message: "Not authorized"});
+            } else {
+                req.username = getUser(token.username, token.iss);
+                req.jwt = tokenCookie;
+                next();
+            }
         } catch (err) {
             res.json({success: false, message: err});
         }
@@ -226,13 +249,20 @@ const handleStartServer = async (req: AuthenticatedRequest, res: express.Respons
             res.status(400).json({success: false, message: `No available ports for the backend process`});
             return;
         }
-        const child = spawn("sudo", [
+
+        let args = [
             "-u", `${req.username}`,
             config.processCommand,
             "-port", `${port}`,
             "-root", config.rootFolderTemplate.replace("<username>", req.username),
             "-base", config.baseFolderTemplate.replace("<username>", req.username),
-        ]);
+        ];
+
+        if (config.additionalArgs) {
+            args = args.concat(config.additionalArgs);
+        }
+
+        const child = spawn("sudo", args);
         child.stdout.on("data", data => console.log(data.toString()));
         child.on("close", code => {
             console.log(`Process ${child.pid} closed with code ${code} and signal ${child.signalCode}`);
@@ -307,7 +337,11 @@ expressServer.on("upgrade", async (req, socket, head) => {
         }
 
         const token = await verifyToken(tokenCookie);
-        const username = getUser(token.username);
+        if (!token || !token.username) {
+            socket.end();
+            return;
+        }
+        const username = getUser(token.username, token.iss);
         const existingProcess = processMap.get(username);
 
         if (!existingProcess?.process || existingProcess.process.signalCode) {

@@ -18,6 +18,49 @@ const publicKey = fs.readFileSync(config.publicKeyLocation);
 // Child processes and ports mapped to users
 const processMap = new Map<string, { process: ChildProcess, port: number }>();
 
+// Map for looking up system user name from authenticated user name
+let userMap: Map<string, string>;
+
+const readUserTable = () => {
+    userMap = new Map<string, string>();
+    try {
+        const contents = fs.readFileSync(config.userLookupTable).toString();
+        const lines = contents.split("\n");
+        for (let line of lines) {
+            line = line.trim();
+
+            // Skip comments
+            if (line.startsWith("#")) {
+                continue;
+            }
+
+            // Ensure line is in format <username1> <username2>
+            const entries = line.split(" ");
+            if (entries.length !== 2) {
+                console.log(`Ignoring malformed usermap line: ${line}`);
+                continue;
+            }
+            userMap.set(entries[0], entries[1]);
+        }
+        console.log(`Updated usermap with ${userMap.size} entries`);
+    } catch (e) {
+        console.log(`Error reading user table`);
+    }
+}
+
+if (config.userLookupTable) {
+    readUserTable();
+    fs.watchFile(config.userLookupTable, readUserTable);
+}
+
+const getUser = (username: string) => {
+    if (userMap) {
+        return userMap.get(username);
+    } else {
+        return username;
+    }
+}
+
 const nextAvailablePort = () => {
     if (!processMap.size) {
         return config.backendPorts.min;
@@ -34,6 +77,7 @@ const nextAvailablePort = () => {
             return p;
         }
     }
+    return -1;
 }
 
 
@@ -57,9 +101,9 @@ if (config.handleTokenSigning) {
             return;
         }
 
-        const username = req.body.username;
+        // Lookup user in usermap if it exists
+        const username = getUser(req.body.username);
         const password = req.body.password;
-
 
         // Dummy auth: always accept as long as password matches dummy password
         if (!username || password !== config.dummyPassword) {
@@ -70,7 +114,7 @@ if (config.handleTokenSigning) {
                 const uid = userid.uid(username);
                 console.log(`Authenticated as user ${username} with uid ${uid}`);
                 const token = jwt.sign({
-                    username: username,
+                    username: req.body.username,
                     backendSocket: config.backendSocket
                 }, privateKey, {algorithm: config.keyAlgorithm, expiresIn: '1h'});
                 res.cookie("CARTA-Authorization", token, {maxAge: 1000 * 60 * 60});
@@ -104,7 +148,7 @@ const authGuard = (req: AuthenticatedRequest, res: express.Response, next: expre
     if (tokenCookie) {
         try {
             const token = jwt.verify(tokenCookie, publicKey, {algorithm: config.keyAlgorithm});
-            req.username = token.username;
+            req.username = getUser(token.username);
             req.jwt = tokenCookie;
             next();
         } catch (err) {
@@ -140,6 +184,7 @@ const handleCheckServer = (req: AuthenticatedRequest, res: express.Response) => 
 const handleStartServer = async (req: AuthenticatedRequest, res: express.Response) => {
     if (!req.username) {
         res.status(400).json({success: false, message: "Invalid username"});
+        return;
     }
 
     // Kill existing backend process for this
@@ -161,6 +206,10 @@ const handleStartServer = async (req: AuthenticatedRequest, res: express.Respons
     // Spawn a new process
     try {
         const port = nextAvailablePort();
+        if (port < 0) {
+            res.status(400).json({success: false, message: `No available ports for the backend process`});
+            return;
+        }
         const child = spawn("sudo", [
             "-u", `${req.username}`,
             config.processCommand,
@@ -178,10 +227,12 @@ const handleStartServer = async (req: AuthenticatedRequest, res: express.Respons
         await delay(config.startDelay);
         if (child.exitCode || child.signalCode) {
             res.status(400).json({success: false, message: `Process terminated within ${config.startDelay} ms`});
+            return;
         } else {
             console.log(`Started process with PID ${child.pid} for user ${req.username} on port ${port}`);
             processMap.set(req.username, {port, process: child});
             res.json({success: true, username: req.username, token: req.jwt});
+            return;
         }
     } catch (e) {
         console.log(`Error killing existing process belonging to user ${req.username}`);
@@ -240,7 +291,7 @@ expressServer.on("upgrade", (req, socket, head) => {
         }
 
         const token = jwt.verify(tokenCookie, publicKey, {algorithm: config.keyAlgorithm});
-        const username = token.username;
+        const username = getUser(token.username);
         const existingProcess = processMap.get(username);
 
         if (!existingProcess?.process || existingProcess.process.signalCode) {

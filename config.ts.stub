@@ -5,12 +5,16 @@ module.exports = {
     privateKeyLocation: "/path/to/your/private/key_in_pem_format",
     keyAlgorithm: "RS256",
     dummyPassword: "helloworld",
+    // Port to listen on. It is advised to listen on a port other than 80 or 443, behind an SSL proxy
     serverPort: 8000
-    backendPorts: {min: 3002, max: 3100},
+    // Range of ports to user for backend processes. Effectively limits the number of simultaneous users
+    backendPorts: {min: 3002, max: 3500},
     processCommand: "/path/to/carta/backend",
     // The <username> placeholder will be replaced with the username
     rootFolderTemplate: "/path/to/user/root/<username>",
     baseFolderTemplate: "/path/to/user/base/<username>",
+    // User lookup table as text file in format <email address> <username>. If no user lookup is needed, leave this blank
+    userLookupTable: "/path/to/user/lookup/table",
     killCommand: "/path/to/carta/kill/script",
     // How long to wait before checking whether started process is still running and sending res
     startDelay: 100

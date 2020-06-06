@@ -127,10 +127,7 @@ document.getElementById("start").onclick = async () => {
         try {
             const res = await apiCall("startServer", undefined, "post");
             const body = await res.json();
-            if (body.success) {
-                // Handle CARTA server redirect
-                console.log(`Redirecting to CARTA frontend with socket ${body.port} as user ${body.username}`);
-            } else {
+            if (!body.success) {
                 showMessage("Failed to start CARTA server", true);
                 console.log(body.message);
             }

@@ -1,0 +1,5 @@
+# comment lines start with a #
+user1@institute.ac user1
+user2@institute.ac user2
+# multiple usernames can be mapped to the same system user
+user1_alt@trusted.domain user1

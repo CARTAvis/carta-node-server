@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<link rel="stylesheet" href="dashboard.css">
+	<title>Dashboard example</title>
+</head>
+<body>
+<div class="dashboard">
+	<div class="login-form">
+		<input id="username" type="text" placeholder="username"/>
+		<input id="password" type="password" placeholder="password"/>
+		<button id="login" class="button button-primary">login</button>
+		<p id="login-status" style="display: none"></p>
+	</div>
+	<div class="carta-form" style="display: none">
+		<button id="start" class="button button-secondary">start carta server</button>
+		<button id="stop" class="button button-warning">stop carta server</button>
+		<button id="logout" class="button button-primary">logout</button>
+		<p id="carta-status" style="display: none"></p>
+	</div>
+</div>
+<script src="dashboard.js"></script>
+</body>
+</html>

@@ -113,14 +113,30 @@ const authGuard = (req: AuthenticatedRequest, res: express.Response, next: expre
     }
 }
 
-const handleStatus = (req: AuthenticatedRequest, res: express.Response) => {
+const handleCheckAuth = (req: AuthenticatedRequest, res: express.Response) => {
     res.json({
         success: true,
         username: req.username,
     });
 }
 
-const handleStart = async (req: AuthenticatedRequest, res: express.Response) => {
+const handleCheckServer = (req: AuthenticatedRequest, res: express.Response) => {
+    const existingProcess = processMap.get(req.username);
+    if (existingProcess) {
+        res.json({
+            success: true,
+            running: true,
+            port: existingProcess.port
+        });
+    } else {
+        res.json({
+            success: true,
+            running: false
+        });
+    }
+}
+
+const handleStartServer = async (req: AuthenticatedRequest, res: express.Response) => {
     if (!req.username) {
         res.status(400).json({success: false, message: "Invalid username"});
     }
@@ -144,8 +160,18 @@ const handleStart = async (req: AuthenticatedRequest, res: express.Response) => 
     // Spawn a new process
     try {
         const port = nextAvailablePort();
-        const child = spawn("sudo", ["-u", `${req.username}`, config.processCommand, "-port", `${port}`]);
+        const child = spawn("sudo", [
+            "-u", `${req.username}`,
+            config.processCommand,
+            "-port", `${port}`,
+            "-root", `/home/${req.username}`,
+            "-base", `/home/${req.username}`
+        ]);
         child.stdout.on("data", data => console.log(data.toString()));
+        child.on("close", code => {
+            console.log(`Process ${child.pid} closed with code ${code} and signal ${child.signalCode}`);
+            processMap.delete(req.username);
+        });
 
         // Check for early exit of backend process
         await delay(config.startDelay);
@@ -163,7 +189,34 @@ const handleStart = async (req: AuthenticatedRequest, res: express.Response) => 
     }
 }
 
-app.post("/api/start", authGuard, handleStart);
-app.get("/api/checkStatus", authGuard, handleStatus);
+const handleStopServer = async (req: AuthenticatedRequest, res: express.Response) => {
+    // Kill existing backend process for this
+    try {
+        const existingProcess = processMap.get(req.username);
+        if (existingProcess) {
+            existingProcess.process.removeAllListeners();
+            // Kill the process via the kill script
+            spawnSync("sudo", ["-u", `${req.username}`, config.killCommand, `${existingProcess.process.pid}`]);
+            // Delay to allow the parent process to exit
+            await delay(10);
+            console.log(`Process with PID ${existingProcess.process.pid} for user ${req.username} exited via stop request`);
+            processMap.delete(req.username);
+            res.json({success: true});
+        } else {
+            res.json({success: false, message: `No existing process belonging to user ${req.username}`});
+        }
+    } catch (e) {
+        console.log(`Error killing existing process belonging to user ${req.username}`);
+        res.status(400).json({success: false, message: "Problem killing existing process"});
+        return;
+    }
+}
+
+app.post("/api/startServer", authGuard, handleStartServer);
+app.post("/api/stopServer", authGuard, handleStopServer);
+app.get("/api/checkAuth", authGuard, handleCheckAuth);
+app.get("/api/checkServer", authGuard, handleCheckServer);
+
+app.use(express.static('public'))
 
 app.listen(config.serverPort, () => console.log(`Started listening for login requests on port ${config.serverPort}`));

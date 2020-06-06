@@ -4,3 +4,4 @@ node_modules/*
 
 # config.ts should be user-generated from template
 config.ts
+public/frontend/*

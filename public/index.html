@@ -2,6 +2,10 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
+	<meta name="google-signin-scope" content="profile email">
+	<meta name="google-signin-client_id" content="787144098684-8tds22ab94fsjae3e01f2tilssjj43jm.apps.googleusercontent.com">
+	<script src="dashboard.js"></script>
+	<script src="https://apis.google.com/js/platform.js?onload=initGoogleAuth" async defer></script>
 	<link rel="stylesheet" href="dashboard.css">
 	<title>Dashboard example</title>
 </head>
@@ -11,6 +15,7 @@
 		<input id="username" type="text" placeholder="username"/>
 		<input id="password" type="password" placeholder="password"/>
 		<button id="login" class="button button-primary">login</button>
+		<div class="g-signin2" data-onsuccess="onSignIn" data-theme="dark"></div>
 		<p id="login-status" style="display: none"></p>
 	</div>
 	<div class="carta-form" style="display: none">
@@ -20,6 +25,5 @@
 		<p id="carta-status" style="display: none"></p>
 	</div>
 </div>
-<script src="dashboard.js"></script>
 </body>
 </html>

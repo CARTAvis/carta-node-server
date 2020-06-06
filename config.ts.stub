@@ -1,5 +1,9 @@
 module.exports = {
+	// jwtType can be "local" (to use a local public key) or "google" to use google OAuth2
+	jwtType: "local",
     publicKeyLocation: "/path/to/your/public/key_in_pem_format",
+    // If jwtType is "google", the client ID is needed
+    googleClientId: "<CLIENTID>.apps.googleusercontent.com"
     // If the server handles token signing, we need a private key and a dummy login
     handleTokenSigning: true,
     privateKeyLocation: "/path/to/your/private/key_in_pem_format",

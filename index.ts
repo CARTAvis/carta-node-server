@@ -7,13 +7,32 @@ import * as jwt from "jsonwebtoken";
 import * as fs from "fs";
 import * as userid from "userid";
 import {spawn, spawnSync, ChildProcess} from "child_process";
+import {OAuth2Client} from "google-auth-library";
 
 // Simple type intersection for adding custom username field to an express request
 type AuthenticatedRequest = express.Request & { username?: string, jwt?: string };
 
 // Auth config
 const config = require("./config.ts");
-const publicKey = fs.readFileSync(config.publicKeyLocation);
+let verifyToken;
+
+if (config.jwtType === "google") {
+    const googleAuthClient = new OAuth2Client(config.googleClientId);
+    verifyToken = async (cookie) => {
+        const ticket = await googleAuthClient.verifyIdToken({
+            idToken: cookie,
+            audience: config.googleClientId
+        });
+        const payload = ticket.getPayload();
+        // Check that email address exists and is verified, return it as the username
+        if (payload && payload.email && payload.email_verified) {
+            return {...payload, username: payload.email};
+        }
+    };
+} else {
+    const publicKey = fs.readFileSync(config.publicKeyLocation);
+    verifyToken = (cookie) => jwt.verify(cookie, publicKey, {algorithm: config.keyAlgorithm});
+}
 
 // Child processes and ports mapped to users
 const processMap = new Map<string, { process: ChildProcess, port: number }>();
@@ -113,10 +132,7 @@ if (config.handleTokenSigning) {
             try {
                 const uid = userid.uid(username);
                 console.log(`Authenticated as user ${username} with uid ${uid}`);
-                const token = jwt.sign({
-                    username: req.body.username,
-                    backendSocket: config.backendSocket
-                }, privateKey, {algorithm: config.keyAlgorithm, expiresIn: '1h'});
+                const token = jwt.sign({username: req.body.username}, privateKey, {algorithm: config.keyAlgorithm, expiresIn: '1h'});
                 res.cookie("CARTA-Authorization", token, {maxAge: 1000 * 60 * 60});
                 res.json({success: true, message: "Successfully authenticated"});
             } catch (e) {
@@ -143,11 +159,11 @@ const getTokenFromBody = (req: express.Request) => {
 const getToken = getTokenFromCookie;
 
 // Express middleware to guard against unauthorized access. Writes the username and jwt to the request object
-const authGuard = (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
+const authGuard = async (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
     const tokenCookie = getToken(req);
     if (tokenCookie) {
         try {
-            const token = jwt.verify(tokenCookie, publicKey, {algorithm: config.keyAlgorithm});
+            const token = await verifyToken(tokenCookie);
             req.username = getUser(token.username);
             req.jwt = tokenCookie;
             next();
@@ -274,7 +290,7 @@ const expressServer = app.listen(config.serverPort, () => console.log(`Started l
 
 // Handle WS connections
 const backendProxy = httpProxy.createServer({ws: true});
-expressServer.on("upgrade", (req, socket, head) => {
+expressServer.on("upgrade", async (req, socket, head) => {
     try {
         // Manually fetch and parse cookie, because we're not using express for this route
         const cookieHeader = req.headers?.cookie;
@@ -290,7 +306,7 @@ expressServer.on("upgrade", (req, socket, head) => {
             return;
         }
 
-        const token = jwt.verify(tokenCookie, publicKey, {algorithm: config.keyAlgorithm});
+        const token = await verifyToken(tokenCookie);
         const username = getUser(token.username);
         const existingProcess = processMap.get(username);
 

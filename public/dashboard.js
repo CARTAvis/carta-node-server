@@ -1,7 +1,10 @@
 const apiBase = `${window.location.href}/api`;
 let serverCheckHandle;
 
-const apiCall = (callName, jsonBody, method) => {
+let authenticationType = "";
+let authenticatedUser = "";
+
+apiCall = (callName, jsonBody, method) => {
     const options = {
         method: method || "get"
     };
@@ -12,8 +15,7 @@ const apiCall = (callName, jsonBody, method) => {
     return fetch(`${apiBase}/${callName}`, options);
 }
 
-
-const showMessage = (message, error, elementId) => {
+showMessage = (message, error, elementId) => {
     const statusElement = document.getElementById(elementId || "login-status");
 
     if (message) {
@@ -31,7 +33,7 @@ const showMessage = (message, error, elementId) => {
     statusElement.innerHTML = message;
 }
 
-const setButtonDisabled = (elementId, disabled) => {
+setButtonDisabled = (elementId, disabled) => {
     const button = document.getElementById(elementId);
     if (button) {
         button.disabled = disabled;
@@ -43,23 +45,7 @@ const setButtonDisabled = (elementId, disabled) => {
     }
 }
 
-window.onload = async () => {
-    if (document.cookie.includes("CARTA-Authorization")) {
-        try {
-            const res = await apiCall("checkAuth");
-            if (res.ok) {
-                const body = await res.json();
-                if (body.success && body.username) {
-                    onLoginSucceeded(body.username);
-                }
-            }
-        } catch (e) {
-            console.log(e);
-        }
-    }
-}
-
-const updateServerStatus = async () => {
+updateServerStatus = async () => {
     let hasServer = false;
     try {
         const res = await apiCall("checkServer");
@@ -75,7 +61,7 @@ const updateServerStatus = async () => {
     updateRedirectURL(hasServer);
 }
 
-const updateRedirectURL = (hasServer) => {
+updateRedirectURL = (hasServer) => {
     if (hasServer) {
         setButtonDisabled("start", true);
         setButtonDisabled("stop", false);
@@ -85,11 +71,11 @@ const updateRedirectURL = (hasServer) => {
     } else {
         setButtonDisabled("stop", true);
         setButtonDisabled("start", false);
-        showMessage(`No CARTA server running`, true, "carta-status");
+        showMessage(`Logged in as ${authenticatedUser}`, false, "carta-status");
     }
 }
 
-document.getElementById("login").onclick = async () => {
+handleLogin = async () => {
     setButtonDisabled("login", true);
     const username = document.getElementById("username").value;
     const password = document.getElementById("password").value;
@@ -98,7 +84,7 @@ document.getElementById("login").onclick = async () => {
     try {
         const res = await apiCall("login", body, "post");
         if (res.ok) {
-            onLoginSucceeded(username);
+            onLoginSucceeded(username, "local");
         } else {
             onLoginFailed(res.status);
         }
@@ -106,21 +92,25 @@ document.getElementById("login").onclick = async () => {
         onLoginFailed(500);
     }
     setButtonDisabled("login", false);
-}
+};
+
 
 onLoginFailed = (status) => {
     showMessage(status === 403 ? "Invalid username/password combination" : "Could not authenticate correctly", true);
 }
 
-onLoginSucceeded = async (username) => {
-    showMessage("");
+onLoginSucceeded = async (username, type) => {
+    authenticatedUser = username;
+    authenticationType = type;
+    showMessage(`Logged in as ${authenticatedUser}`, false, "carta-status");
     await updateServerStatus();
     showLoginForm(false);
     showCartaForm(true);
-    serverCheckHandle = setInterval(updateServerStatus, 2000);
+    clearInterval(serverCheckHandle);
+    serverCheckHandle = setInterval(updateServerStatus, 5000);
 }
 
-document.getElementById("start").onclick = async () => {
+handleServerStart = async () => {
     setButtonDisabled("start", true);
     setButtonDisabled("stop", true);
     try {
@@ -128,18 +118,19 @@ document.getElementById("start").onclick = async () => {
             const res = await apiCall("startServer", undefined, "post");
             const body = await res.json();
             if (!body.success) {
-                showMessage("Failed to start CARTA server", true);
+                showMessage("Failed to start CARTA server", true, "carta-status");
                 console.log(body.message);
             }
         } catch (e) {
             console.log(e);
         }
     } catch (e) {
-        showMessage("Failed to start CARTA server", true);
+        showMessage("Failed to start CARTA server", true, "carta-status");
     }
     await updateServerStatus();
 }
-const handleServerStop = async () => {
+
+handleServerStop = async () => {
     setButtonDisabled("start", true);
     setButtonDisabled("stop", true);
     try {
@@ -158,21 +149,45 @@ const handleServerStop = async () => {
             console.log(e);
         }
     } catch (e) {
-        showMessage("Failed to start CARTA server", true);
+        showMessage("Failed to stop CARTA server", true);
     }
     await updateServerStatus();
 }
 
-document.getElementById("stop").onclick = handleServerStop;
-
-document.getElementById("logout").onclick = async () => {
-    await handleServerStop();
+handleLogout = async () => {
     clearInterval(serverCheckHandle);
+    if (authenticationType === "google") {
+        await handleGoogleLogout();
+    }
+    await handleServerStop();
     showMessage();
     showCartaForm(false);
     showLoginForm(true);
     // Remove cookie
     document.cookie = "CARTA-Authorization=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+}
+
+initGoogleAuth = () => {
+    gapi.load('auth2', function () {
+        console.log("Google loaded");
+        gapi.auth2.init();
+    });
+};
+
+onSignIn = (googleUser) => {
+    const profile = googleUser.getBasicProfile();
+    const idToken = googleUser.getAuthResponse().id_token;
+    document.cookie = `CARTA-Authorization=${idToken}`;
+    onLoginSucceeded(profile.getEmail(), "google");
+}
+
+handleGoogleLogout = async () => {
+    if (gapi && gapi.auth2) {
+        const authInstance = gapi.auth2.getAuthInstance();
+        if (authInstance) {
+            await authInstance.signOut();
+        }
+    }
 }
 
 showCartaForm = (show) => {
@@ -193,4 +208,28 @@ showLoginForm = (show) => {
         loginForm.style.display = "none";
 
     }
+}
+
+window.onload = async () => {
+    if (document.cookie.includes("CARTA-Authorization")) {
+        try {
+            const res = await apiCall("checkAuth");
+            if (res.ok) {
+                const body = await res.json();
+                if (body.success && body.username) {
+                    await onLoginSucceeded(body.username, "jwt");
+                } else {
+                    await handleLogout();
+                }
+            }
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
+    // Wire up buttons
+    document.getElementById("login").onclick = handleLogin;
+    document.getElementById("start").onclick = handleServerStart;
+    document.getElementById("stop").onclick = handleServerStop;
+    document.getElementById("logout").onclick = handleLogout;
 }

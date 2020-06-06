@@ -1,6 +1,8 @@
 import * as express from "express";
 import * as bodyParser from "body-parser";
 import * as cookieParser from "cookie-parser";
+import * as httpProxy from "http-proxy";
+import * as cookie from "cookie";
 import * as jwt from "jsonwebtoken";
 import * as fs from "fs";
 import * as userid from "userid";
@@ -126,7 +128,6 @@ const handleCheckServer = (req: AuthenticatedRequest, res: express.Response) => 
         res.json({
             success: true,
             running: true,
-            port: existingProcess.port
         });
     } else {
         res.json({
@@ -164,8 +165,8 @@ const handleStartServer = async (req: AuthenticatedRequest, res: express.Respons
             "-u", `${req.username}`,
             config.processCommand,
             "-port", `${port}`,
-            "-root", `/home/${req.username}`,
-            "-base", `/home/${req.username}`
+            "-root", config.rootFolderTemplate.replace("<username>", req.username),
+            "-base", config.baseFolderTemplate.replace("<username>", req.username),
         ]);
         child.stdout.on("data", data => console.log(data.toString()));
         child.on("close", code => {
@@ -180,7 +181,7 @@ const handleStartServer = async (req: AuthenticatedRequest, res: express.Respons
         } else {
             console.log(`Started process with PID ${child.pid} for user ${req.username} on port ${port}`);
             processMap.set(req.username, {port, process: child});
-            res.json({success: true, username: req.username, token: req.jwt, port});
+            res.json({success: true, username: req.username, token: req.jwt});
         }
     } catch (e) {
         console.log(`Error killing existing process belonging to user ${req.username}`);
@@ -212,11 +213,47 @@ const handleStopServer = async (req: AuthenticatedRequest, res: express.Response
     }
 }
 
+app.use(express.static('public'))
 app.post("/api/startServer", authGuard, handleStartServer);
 app.post("/api/stopServer", authGuard, handleStopServer);
 app.get("/api/checkAuth", authGuard, handleCheckAuth);
 app.get("/api/checkServer", authGuard, handleCheckServer);
 
-app.use(express.static('public'))
+const expressServer = app.listen(config.serverPort, () => console.log(`Started listening for login requests on port ${config.serverPort}`));
 
-app.listen(config.serverPort, () => console.log(`Started listening for login requests on port ${config.serverPort}`));
+// Handle WS connections
+const backendProxy = httpProxy.createServer({ws: true});
+expressServer.on("upgrade", (req, socket, head) => {
+    try {
+        // Manually fetch and parse cookie, because we're not using express for this route
+        const cookieHeader = req.headers?.cookie;
+        if (!cookieHeader) {
+            socket.end();
+            return;
+        }
+        const cookies = cookie.parse(cookieHeader);
+        const tokenCookie = cookies?.["CARTA-Authorization"];
+
+        if (!tokenCookie) {
+            socket.end();
+            return;
+        }
+
+        const token = jwt.verify(tokenCookie, publicKey, {algorithm: config.keyAlgorithm});
+        const username = token.username;
+        const existingProcess = processMap.get(username);
+
+        if (!existingProcess?.process || existingProcess.process.signalCode) {
+            socket.end();
+            return;
+        }
+
+        if (existingProcess && !existingProcess.process.signalCode) {
+            console.log(`Redirecting to backend process for ${username} (port ${existingProcess.port})`);
+            backendProxy.ws(req, socket, head, {target: {host: "localhost", port: existingProcess.port}});
+            return;
+        }
+    } catch (err) {
+        socket.end();
+    }
+});

@@ -1,6 +1,4 @@
-const apiBase = `${window.location.origin}/api`;
-
-let port = -1;
+const apiBase = `${window.location.href}/api`;
 let serverCheckHandle;
 
 const apiCall = (callName, jsonBody, method) => {
@@ -62,39 +60,32 @@ window.onload = async () => {
 }
 
 const updateServerStatus = async () => {
-    let serverPort = -1;
+    let hasServer = false;
     try {
         const res = await apiCall("checkServer");
         if (res.ok) {
             const body = await res.json();
-            if (body.success && body.port) {
-                serverPort = body.port;
+            if (body.success && body.running) {
+                hasServer = true;
             }
         }
     } catch (e) {
         console.log(e);
     }
-    updateRedirectURL(serverPort);
+    updateRedirectURL(hasServer);
 }
 
-const updateRedirectURL = (p) => {
-    port = p;
-    if (port > 0) {
+const updateRedirectURL = (hasServer) => {
+    if (hasServer) {
         setButtonDisabled("start", true);
         setButtonDisabled("stop", false);
-
-        let redirectUrl = `${window.location.origin}/frontend?socketUrl=ws://${window.location.host}`;
-        // update port:
-        redirectUrl = redirectUrl.replace(/:(\d+)$/, `:${port}`);
-        console.log(redirectUrl);
-
-        const title = `CARTA server running on port ${port}`;
+        let redirectUrl = `${window.location.href}/frontend`;
+        const title = `CARTA server running`;
         showMessage(title.link(redirectUrl), false, "carta-status");
-
     } else {
         setButtonDisabled("stop", true);
         setButtonDisabled("start", false);
-        showMessage(`No CARTA server running`, false, "carta-status");
+        showMessage(`No CARTA server running`, true, "carta-status");
     }
 }
 

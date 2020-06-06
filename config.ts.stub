@@ -8,6 +8,9 @@ module.exports = {
     serverPort: 8000
     backendPorts: {min: 3002, max: 3100},
     processCommand: "/path/to/carta/backend",
+    // The <username> placeholder will be replaced with the username
+    rootFolderTemplate: "/path/to/user/root/<username>",
+    baseFolderTemplate: "/path/to/user/base/<username>",
     killCommand: "/path/to/carta/kill/script",
     // How long to wait before checking whether started process is still running and sending res
     startDelay: 100

@@ -169,7 +169,7 @@ handleLogout = async () => {
 
 initGoogleAuth = () => {
     gapi.load('auth2', function () {
-        console.log("Google loaded");
+        console.log("Google auth loaded");
         gapi.auth2.init();
     });
 };

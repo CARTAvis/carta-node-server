@@ -1,3 +1,4 @@
+const notyf = new Notyf();
 const apiBase = `${window.location.href}/api`;
 let serverCheckHandle;
 
@@ -54,6 +55,9 @@ updateServerStatus = async () => {
             if (body.success && body.running) {
                 hasServer = true;
             }
+        } else if (res.status === 403) {
+            console.log("Authentication has been lost");
+            await handleLogout();
         }
     } catch (e) {
         console.log(e);
@@ -96,18 +100,18 @@ handleLogin = async () => {
 
 
 onLoginFailed = (status) => {
-    showMessage(status === 403 ? "Invalid username/password combination" : "Could not authenticate correctly", true);
+    notyf.error(status === 403 ? "Invalid username/password combination" : "Could not authenticate correctly");
 }
 
 onLoginSucceeded = async (username, type) => {
     authenticatedUser = username;
     authenticationType = type;
-    showMessage(`Logged in as ${authenticatedUser}`, false, "carta-status");
-    await updateServerStatus();
+    notyf.success(`Logged in as ${authenticatedUser}`);
     showLoginForm(false);
     showCartaForm(true);
     clearInterval(serverCheckHandle);
     serverCheckHandle = setInterval(updateServerStatus, 5000);
+    await updateServerStatus();
 }
 
 handleServerStart = async () => {
@@ -118,14 +122,17 @@ handleServerStart = async () => {
             const res = await apiCall("startServer", undefined, "post");
             const body = await res.json();
             if (!body.success) {
-                showMessage("Failed to start CARTA server", true, "carta-status");
+                notyf.error("Failed to start CARTA server");
                 console.log(body.message);
+            } else {
+                notyf.success("Started CARTA server successfully");
             }
         } catch (e) {
             console.log(e);
         }
     } catch (e) {
-        showMessage("Failed to start CARTA server", true, "carta-status");
+        notyf.error("Failed to start CARTA server");
+        console.log(e);
     }
     await updateServerStatus();
 }
@@ -139,19 +146,20 @@ handleServerStop = async () => {
             const body = await res.json();
             if (body.success) {
                 // Handle CARTA server redirect
-                console.log(`Stopped server successfully`);
+                notyf.success("Stopped CARTA server successfully");
+                await updateServerStatus();
             } else {
-                showMessage("Failed to stop CARTA server", true);
+                notyf.success("Stopped CARTA server successfully");
+                notyf.error("Failed to stop CARTA server");
                 console.log(body.message);
             }
-
         } catch (e) {
             console.log(e);
         }
     } catch (e) {
-        showMessage("Failed to stop CARTA server", true);
+        notyf.error("Failed to stop CARTA server");
+        console.log(e);
     }
-    await updateServerStatus();
 }
 
 handleLogout = async () => {
@@ -182,11 +190,16 @@ onSignIn = (googleUser) => {
 }
 
 handleGoogleLogout = async () => {
-    if (gapi && gapi.auth2) {
-        const authInstance = gapi.auth2.getAuthInstance();
-        if (authInstance) {
-            await authInstance.signOut();
+    try {
+        if (gapi && gapi.auth2) {
+            const authInstance = gapi.auth2.getAuthInstance();
+            if (authInstance) {
+                await authInstance.disconnect();
+            }
         }
+    } catch (err) {
+        notyf.error("Error signing out of Google");
+        console.log(err);
     }
 }
 

@@ -121,10 +121,21 @@ if (config.authProviders.google) {
             audience: authConf.googleClientId
         });
         const payload = ticket.getPayload();
-        // Check that sub exists and email is verified (Google recommends returning the "sub" field as the unique ID)
-        if (payload && payload.sub && payload.email_verified) {
-            return {...payload, username: payload.sub};
+
+        // check that unique ID exists and email is verified
+        if (!payload?.sub || !payload?.email_verified) {
+            console.log("Google auth rejected due to lack of unique ID or email verification");
+            return undefined;
         }
+
+        // check that domain is valid
+        if (authConf.validDomains && authConf.validDomains.length && !authConf.validDomains.includes(payload.hd)) {
+            console.log(`Google auth rejected due to incorrect domain: ${payload.hd}`);
+            return undefined;
+        }
+
+        // Google recommends returning the "sub" field as the unique ID
+        return {...payload, username: payload.sub};
     };
 
     for (const iss of validIssuers) {

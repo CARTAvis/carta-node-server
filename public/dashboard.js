@@ -198,7 +198,7 @@ initGoogleAuth = () => {
 onSignIn = (googleUser) => {
     const profile = googleUser.getBasicProfile();
     const idToken = googleUser.getAuthResponse().id_token;
-    document.cookie = `CARTA-Authorization=${idToken}`;
+    document.cookie = `CARTA-Authorization=${idToken};secure;samesite=strict`;
     onLoginSucceeded(profile.getEmail(), "google");
 }
 
@@ -237,20 +237,18 @@ showLoginForm = (show) => {
 }
 
 window.onload = async () => {
-    if (document.cookie.includes("CARTA-Authorization")) {
-        try {
-            const res = await apiCall("auth/checkAuth");
-            if (res.ok) {
-                const body = await res.json();
-                if (body.success && body.username) {
-                    await onLoginSucceeded(body.username, "jwt");
-                } else {
-                    await handleLogout();
-                }
+    try {
+        const res = await apiCall("auth/checkAuth");
+        if (res.ok) {
+            const body = await res.json();
+            if (body.success && body.username) {
+                await onLoginSucceeded(body.username, "jwt");
+            } else {
+                await handleLogout();
             }
-        } catch (e) {
-            console.log(e);
         }
+    } catch (e) {
+        console.log(e);
     }
 
     // Wire up buttons

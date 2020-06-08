@@ -213,7 +213,7 @@ if (config.authProviders.local) {
                     algorithm: authConf.keyAlgorithm,
                     expiresIn: '1h'
                 });
-                res.cookie("CARTA-Authorization", token, {maxAge: 1000 * 60 * 60});
+                res.cookie("CARTA-Authorization", token, {maxAge: 1000 * 60 * 60, secure: true, sameSite: "strict"});
                 res.json({success: true, message: "Successfully authenticated"});
             } catch (e) {
                 res.status(403).json({success: false, message: "Invalid username/password combo"});

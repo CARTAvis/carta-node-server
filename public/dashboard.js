@@ -1,9 +1,20 @@
-const notyf = new Notyf();
+const notyf = new Notyf({
+    ripple: true,
+    position: {x: "center"},
+    types: [{
+        type: "warning",
+        background: "orange"
+    }, {
+        type: "info",
+        background: "#4c84af",
+    }]
+});
 const apiBase = `${window.location.href}/api`;
 let serverCheckHandle;
 
 let authenticationType = "";
 let authenticatedUser = "";
+let serverRunning = false;
 
 apiCall = (callName, jsonBody, method) => {
     const options = {
@@ -11,7 +22,7 @@ apiCall = (callName, jsonBody, method) => {
     };
     if (jsonBody) {
         options.body = JSON.stringify(jsonBody);
-        options.headers = {'Content-Type': 'application/json'}
+        options.headers = {"Content-Type": "application/json"}
     }
     return fetch(`${apiBase}/${callName}`, options);
 }
@@ -63,6 +74,7 @@ updateServerStatus = async () => {
         console.log(e);
     }
     updateRedirectURL(hasServer);
+    serverRunning = hasServer;
 }
 
 updateRedirectURL = (hasServer) => {
@@ -145,8 +157,7 @@ handleServerStop = async () => {
             const res = await apiCall("server/stopServer", undefined, "post");
             const body = await res.json();
             if (body.success) {
-                // Handle CARTA server redirect
-                notyf.success("Stopped CARTA server successfully");
+                notyf.open({type: "info", message: "Stopped CARTA server successfully"});
                 await updateServerStatus();
             } else {
                 notyf.success("Stopped CARTA server successfully");
@@ -167,7 +178,9 @@ handleLogout = async () => {
     if (authenticationType === "google") {
         await handleGoogleLogout();
     }
-    await handleServerStop();
+    if (serverRunning) {
+        await handleServerStop();
+    }
     showMessage();
     showCartaForm(false);
     showLoginForm(true);
@@ -176,7 +189,7 @@ handleLogout = async () => {
 }
 
 initGoogleAuth = () => {
-    gapi.load('auth2', function () {
+    gapi.load("auth2", function () {
         console.log("Google auth loaded");
         gapi.auth2.init();
     });

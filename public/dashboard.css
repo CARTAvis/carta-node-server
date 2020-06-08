@@ -1,12 +1,13 @@
 @import url(https://fonts.googleapis.com/css?family=Roboto:300);
-/* CSS adapted from https://codepen.io/colorlib/pen/rxddKy */
+
 .login-form input {
 	font-family: "Roboto", sans-serif;
 	outline: 0;
 	background: #f2f2f2;
 	width: 100%;
 	border: 0;
-	margin: 0 0 15px;
+	border-radius: 3px;
+	margin: 5px 0 5px 0;
 	padding: 15px;
 	box-sizing: border-box;
 	font-size: 14px;
@@ -30,7 +31,7 @@
 	background: #FFFFFF;
 	max-width: 360px;
 	margin: 0 auto 50px;
-	padding: 45px;
+	padding: 25px;
 	text-align: center;
 	box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.2), 0 5px 5px 0 rgba(0, 0, 0, 0.24);
 }
@@ -41,12 +42,13 @@
 	background: #FFFFFF;
 	max-width: 360px;
 	margin: 0 auto 100px;
-	padding: 45px;
+	padding: 25px;
 	text-align: center;
 	box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.2), 0 5px 5px 0 rgba(0, 0, 0, 0.24);
 }
 
 .button {
+	border-radius: 3px;
 	font-family: "Roboto", sans-serif;
 	text-transform: uppercase;
 	outline: 0;
@@ -65,29 +67,42 @@
 	opacity: 50%;
 }
 
-.button-primary{
+.button-primary {
 	background: #4c84af;
 }
-.button-primary:hover,.button-primary:active,.button-primary:focus {
+
+.button-primary:hover, .button-primary:active, .button-primary:focus {
 	background: #4357a0;
 }
 
-.button-secondary{
+.button-secondary {
 	background: #5eaf4c;
 }
-.button-secondary:hover,.button-secondary:active,.button-secondary:focus {
+
+.button-secondary:hover, .button-secondary:active, .button-secondary:focus {
 	background: #5ca043;
 }
 
-.button-warning{
+.button-warning {
 	background: #af4c4c;
 }
-.button-warning:hover,.button-warning:active,.button-warning:focus {
+
+.button-warning:hover, .button-warning:active, .button-warning:focus {
 	background: #a04343;
 }
 
+.sso-buttons {
+	display: flex;
+	margin-top: 40px;
+}
+
+.sso-buttons > div {
+	flex: 1 1 auto;
+	margin-right: 5px;
+}
+
 body {
-	background: linear-gradient(to left, #5274b8, #6f97c2);
+	background: linear-gradient(to left, #335187, #335c80);
 	font-family: "Roboto", sans-serif;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;

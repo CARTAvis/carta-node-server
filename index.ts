@@ -65,32 +65,37 @@ const readUserTable = (issuer: string | string[], filename: string) => {
 }
 
 if (config.authProviders.local) {
-    const publicKey = fs.readFileSync(config.authProviders.local.publicKeyLocation);
-    tokenVerifiers.set(config.authProviders.local.issuer, (cookieString) => {
-        return jwt.verify(cookieString, publicKey, {algorithm: config.authProviders.local.keyAlgorithm});
+    const authConf = config.authProviders.local;
+    const publicKey = fs.readFileSync(authConf.publicKeyLocation);
+    tokenVerifiers.set(authConf.issuer, (cookieString) => {
+        const payload = jwt.verify(cookieString, publicKey, {algorithm: authConf.keyAlgorithm});
+        if (payload && payload.iss === authConf.issuer) {
+            return payload;
+        } else {
+            return undefined;
+        }
     });
 
-    const privateKey = fs.readFileSync(config.authProviders.local.privateKeyLocation);
+    const privateKey = fs.readFileSync(authConf.privateKeyLocation);
     app.post("/api/login", (req, res) => {
         if (!req.body) {
             res.status(400).json({success: false, message: "Malformed login request"});
             return;
         }
 
-        // Lookup user in usermap if it exists
-        let username = getUser(req.body.username, config.authProviders.local.issuer);
+        let username = req.body.username;
         const password = req.body.password;
 
         // Dummy auth: always accept as long as password matches dummy password
-        if (!username || password !== config.authProviders.local.dummyPassword) {
+        if (!username || password !== authConf.dummyPassword) {
             res.status(403).json({success: false, message: "Invalid username/password combo"});
         } else {
             // verify that user exists on the system
             try {
                 const uid = userid.uid(username);
                 console.log(`Authenticated as user ${username} with uid ${uid}`);
-                const token = jwt.sign({iss: config.authProviders.local.issuer, username: req.body.username}, privateKey, {
-                    algorithm: config.authProviders.local.keyAlgorithm,
+                const token = jwt.sign({iss: authConf.issuer, username}, privateKey, {
+                    algorithm: authConf.keyAlgorithm,
                     expiresIn: '1h'
                 });
                 res.cookie("CARTA-Authorization", token, {maxAge: 1000 * 60 * 60});
@@ -107,12 +112,13 @@ if (config.authProviders.local) {
 }
 
 if (config.authProviders.google) {
+    const authConf = config.authProviders.google;
     const validIssuers = ["accounts.google.com", "https://accounts.google.com"]
-    const googleAuthClient = new OAuth2Client(config.googleClientId);
+    const googleAuthClient = new OAuth2Client(authConf.googleClientId);
     const verifier = async (cookieString) => {
         const ticket = await googleAuthClient.verifyIdToken({
             idToken: cookieString,
-            audience: config.googleClientId
+            audience: authConf.googleClientId
         });
         const payload = ticket.getPayload();
         // Check that sub exists and email is verified (Google recommends returning the "sub" field as the unique ID)
@@ -125,9 +131,35 @@ if (config.authProviders.google) {
         tokenVerifiers.set(iss, verifier);
     }
 
-    if (config.authProviders.google.userLookupTable) {
-        readUserTable(validIssuers, config.authProviders.google.userLookupTable);
-        fs.watchFile(config.authProviders.google.userLookupTable, () => readUserTable(validIssuers, config.authProviders.google.userLookupTable));
+    if (authConf.userLookupTable) {
+        readUserTable(validIssuers, authConf.userLookupTable);
+        fs.watchFile(authConf.userLookupTable, () => readUserTable(validIssuers, authConf.userLookupTable));
+    }
+}
+
+if (config.authProviders.external) {
+    const authConf = config.authProviders.external;
+    const publicKey = fs.readFileSync(authConf.publicKeyLocation);
+    const verifier = (cookieString) => {
+        const payload = jwt.verify(cookieString, publicKey, {algorithm: authConf.keyAlgorithm});
+        if (payload && payload.iss && authConf.issuers.includes(payload.iss)) {
+            // substitute unique field in for username
+            if (authConf.uniqueField) {
+                payload.username = payload[authConf.uniqueField];
+            }
+            return payload;
+        } else {
+            return undefined;
+        }
+    };
+
+    for (const iss of authConf.issuers) {
+        tokenVerifiers.set(iss, verifier);
+    }
+
+    if (authConf.userLookupTable) {
+        readUserTable(authConf.issuers, authConf.userLookupTable);
+        fs.watchFile(authConf.userLookupTable, () => readUserTable(authConf.issuers, authConf.userLookupTable));
     }
 }
 

@@ -8,13 +8,20 @@ module.exports = {
 			privateKeyLocation: "/path/to/your/private/key_in_pem_format",
 			keyAlgorithm: "RS256",
 			dummyPassword: "helloworld",
-			issuer: "some-identifier",
-			// Can skip user lookup when authenticating as a local user
-			bypassLookup: true
+			issuer: "some_identifier",
 		},
 		google: {
 			clientId: "<CLIENTID>.apps.googleusercontent.com",
 			// User lookup table as text file in format <unique user ID> <system user>. If no user lookup is needed, leave this blank
+			userLookupTable: "/path/to/user/lookup/table"
+		},
+		external: {
+		    issuers: ["valid_issuer_1", "valid_issuer_2"],
+		    publicKeyLocation: "/path/to/public/key_in_pem_format",
+		    keyAlgorithm: "RS256",
+		    // Unique field to be used as username
+		    uniqueField: "sub",
+		    // User lookup table as text file in format <unique user ID> <system user>. If no user lookup is needed, leave this blank
 			userLookupTable: "/path/to/user/lookup/table"
 		}
 	},

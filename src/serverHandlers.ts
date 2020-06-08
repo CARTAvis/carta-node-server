@@ -4,6 +4,7 @@ import * as httpProxy from "http-proxy";
 import {ChildProcess, spawn, spawnSync} from "child_process";
 import {delay} from "./util";
 import {AuthenticatedRequest, authGuard, getUser, verifyToken} from "./auth";
+import {IncomingMessage} from "http";
 
 const config = require("../config/config.ts");
 const processMap = new Map<string, { process: ChildProcess, port: number }>();
@@ -28,6 +29,11 @@ function nextAvailablePort() {
 }
 
 function handleCheckServer(req: AuthenticatedRequest, res: express.Response) {
+    if (!req.username) {
+        res.status(403).json({success: false, message: "Invalid username"});
+        return;
+    }
+
     const existingProcess = processMap.get(req.username);
     if (existingProcess) {
         res.json({
@@ -44,7 +50,7 @@ function handleCheckServer(req: AuthenticatedRequest, res: express.Response) {
 
 async function handleStartServer(req: AuthenticatedRequest, res: express.Response) {
     if (!req.username) {
-        res.status(400).json({success: false, message: "Invalid username"});
+        res.status(403).json({success: false, message: "Invalid username"});
         return;
     }
 
@@ -88,7 +94,9 @@ async function handleStartServer(req: AuthenticatedRequest, res: express.Respons
         child.stdout.on("data", data => console.log(data.toString()));
         child.on("close", code => {
             console.log(`Process ${child.pid} closed with code ${code} and signal ${child.signalCode}`);
-            processMap.delete(req.username);
+            if (req.username) {
+                processMap.delete(req.username);
+            }
         });
 
         // Check for early exit of backend process
@@ -110,6 +118,11 @@ async function handleStartServer(req: AuthenticatedRequest, res: express.Respons
 }
 
 async function handleStopServer(req: AuthenticatedRequest, res: express.Response) {
+    if (!req.username) {
+        res.status(403).json({success: false, message: "Invalid username"});
+        return;
+    }
+
     // Kill existing backend process for this
     try {
         const existingProcess = processMap.get(req.username);
@@ -131,7 +144,7 @@ async function handleStopServer(req: AuthenticatedRequest, res: express.Response
     }
 }
 
-export const createUpgradeHandler = (server: httpProxy.server) => async (req, socket, head) => {
+export const createUpgradeHandler = (server: httpProxy) => async (req: IncomingMessage, socket: any, head: any) => {
     try {
         // Manually fetch and parse cookie, because we're not using express for this route
         const cookieHeader = req.headers?.cookie;
@@ -153,6 +166,10 @@ export const createUpgradeHandler = (server: httpProxy.server) => async (req, so
             return;
         }
         const username = getUser(token.username, token.iss);
+        if (!username) {
+            socket.end();
+            return;
+        }
         const existingProcess = processMap.get(username);
 
         if (!existingProcess?.process || existingProcess.process.signalCode) {

@@ -3,6 +3,7 @@ import * as jwt from "jsonwebtoken";
 import * as express from "express";
 import * as userid from "userid";
 import {OAuth2Client} from "google-auth-library";
+import {VerifyOptions} from "jsonwebtoken";
 
 export type RequestHandler = (req: express.Request, res: express.Response) => void;
 export type AuthenticatedRequest = express.Request & { username?: string, jwt?: string };
@@ -59,7 +60,7 @@ if (config.authProviders.local) {
     const authConf = config.authProviders.local;
     const publicKey = fs.readFileSync(authConf.publicKeyLocation);
     tokenVerifiers.set(authConf.issuer, (cookieString) => {
-        const payload = jwt.verify(cookieString, publicKey, {algorithm: authConf.keyAlgorithm});
+        const payload: any = jwt.verify(cookieString, publicKey, {algorithm: authConf.keyAlgorithm} as VerifyOptions);
         if (payload && payload.iss === authConf.issuer) {
             return payload;
         } else {
@@ -72,7 +73,7 @@ if (config.authProviders.google) {
     const authConf = config.authProviders.google;
     const validIssuers = ["accounts.google.com", "https://accounts.google.com"]
     const googleAuthClient = new OAuth2Client(authConf.googleClientId);
-    const verifier = async (cookieString) => {
+    const verifier = async (cookieString: string) => {
         const ticket = await googleAuthClient.verifyIdToken({
             idToken: cookieString,
             audience: authConf.googleClientId
@@ -108,8 +109,8 @@ if (config.authProviders.google) {
 if (config.authProviders.external) {
     const authConf = config.authProviders.external;
     const publicKey = fs.readFileSync(authConf.publicKeyLocation);
-    const verifier = (cookieString) => {
-        const payload = jwt.verify(cookieString, publicKey, {algorithm: authConf.keyAlgorithm});
+    const verifier = (cookieString: string) => {
+        const payload: any = jwt.verify(cookieString, publicKey, {algorithm: authConf.keyAlgorithm} as VerifyOptions);
         if (payload && payload.iss && authConf.issuers.includes(payload.iss)) {
             // substitute unique field in for username
             if (authConf.uniqueField) {
@@ -138,7 +139,7 @@ if (!tokenVerifiers.size) {
 }
 
 export async function verifyToken(cookieString: string) {
-    const tokenJson = jwt.decode(cookieString);
+    const tokenJson: any = jwt.decode(cookieString);
     if (tokenJson && tokenJson.iss) {
         const verifier = tokenVerifiers.get(tokenJson.iss);
         if (verifier) {

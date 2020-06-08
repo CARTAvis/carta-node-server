@@ -11,7 +11,10 @@ import {OAuth2Client} from "google-auth-library";
 
 // Simple type intersection for adding custom username field to an express request
 type AuthenticatedRequest = express.Request & { username?: string, jwt?: string };
+// Token verifier function
 type Verifier = (cookieString: string) => any;
+// Map for looking up system user name from authenticated user name
+type UserMap = Map<string, string>;
 
 let app = express();
 app.use(bodyParser.urlencoded({extended: true}));
@@ -22,6 +25,44 @@ app.use(cookieParser());
 const config = require("./config.ts");
 // maps JWT claim "iss" to a token verifier
 const tokenVerifiers = new Map<string, Verifier>();
+// maps JWT claim "iss" to a user map
+const userMaps = new Map<string, UserMap>();
+
+// Authentication schemes may have multiple valid issuers
+const readUserTable = (issuer: string | string[], filename: string) => {
+    const userMap = new Map<string, string>();
+    try {
+        const contents = fs.readFileSync(filename).toString();
+        const lines = contents.split("\n");
+        for (let line of lines) {
+            line = line.trim();
+
+            // Skip comments
+            if (line.startsWith("#")) {
+                continue;
+            }
+
+            // Ensure line is in format <username1> <username2>
+            const entries = line.split(" ");
+            if (entries.length !== 2) {
+                console.log(`Ignoring malformed usermap line: ${line}`);
+                continue;
+            }
+            userMap.set(entries[0], entries[1]);
+        }
+        console.log(`Updated usermap with ${userMap.size} entries`);
+    } catch (e) {
+        console.log(`Error reading user table`);
+    }
+
+    if (Array.isArray(issuer)) {
+        for (const iss of issuer) {
+            userMaps.set(iss, userMap);
+        }
+    } else {
+        userMaps.set(issuer, userMap);
+    }
+}
 
 if (config.authProviders.local) {
     const publicKey = fs.readFileSync(config.authProviders.local.publicKeyLocation);
@@ -66,18 +107,28 @@ if (config.authProviders.local) {
 }
 
 if (config.authProviders.google) {
+    const validIssuers = ["accounts.google.com", "https://accounts.google.com"]
     const googleAuthClient = new OAuth2Client(config.googleClientId);
-    tokenVerifiers.set("accounts.google.com", async (cookieString) => {
+    const verifier = async (cookieString) => {
         const ticket = await googleAuthClient.verifyIdToken({
             idToken: cookieString,
             audience: config.googleClientId
         });
         const payload = ticket.getPayload();
-        // Check that email address exists and is verified, return it as the username
-        if (payload && payload.email && payload.email_verified) {
-            return {...payload, username: payload.email};
+        // Check that sub exists and email is verified (Google recommends returning the "sub" field as the unique ID)
+        if (payload && payload.sub && payload.email_verified) {
+            return {...payload, username: payload.sub};
         }
-    });
+    };
+
+    for (const iss of validIssuers) {
+        tokenVerifiers.set(iss, verifier);
+    }
+
+    if (config.authProviders.google.userLookupTable) {
+        readUserTable(validIssuers, config.authProviders.google.userLookupTable);
+        fs.watchFile(config.authProviders.google.userLookupTable, () => readUserTable(validIssuers, config.authProviders.google.userLookupTable));
+    }
 }
 
 // Check for empty token verifies
@@ -100,45 +151,9 @@ const verifyToken = async (cookieString: string) => {
 // Child processes and ports mapped to users
 const processMap = new Map<string, { process: ChildProcess, port: number }>();
 
-// Map for looking up system user name from authenticated user name
-let userMap: Map<string, string>;
-
-const readUserTable = () => {
-    userMap = new Map<string, string>();
-    try {
-        const contents = fs.readFileSync(config.userLookupTable).toString();
-        const lines = contents.split("\n");
-        for (let line of lines) {
-            line = line.trim();
-
-            // Skip comments
-            if (line.startsWith("#")) {
-                continue;
-            }
-
-            // Ensure line is in format <username1> <username2>
-            const entries = line.split(" ");
-            if (entries.length !== 2) {
-                console.log(`Ignoring malformed usermap line: ${line}`);
-                continue;
-            }
-            userMap.set(entries[0], entries[1]);
-        }
-        console.log(`Updated usermap with ${userMap.size} entries`);
-    } catch (e) {
-        console.log(`Error reading user table`);
-    }
-}
-
-if (config.userLookupTable) {
-    readUserTable();
-    fs.watchFile(config.userLookupTable, readUserTable);
-}
 
 const getUser = (username: string, issuer: string) => {
-    if (config.authProviders?.local?.bypassLookup && issuer === config.authProviders.local.issuer) {
-        return username;
-    }
+    const userMap = userMaps.get(issuer);
     if (userMap) {
         return userMap.get(username);
     } else {

@@ -1,7 +1,7 @@
 module.exports = {
 	// One or more authProvider must be defined
 	authProviders: {
-		// Local email/password authentication
+		// Local username/password authentication
 		// Currently just uses a dummy password, but a PAM service would be appropriate
 		local: {
 			publicKeyLocation: "/path/to/your/public/key_in_pem_format",
@@ -13,7 +13,9 @@ module.exports = {
 			bypassLookup: true
 		},
 		google: {
-			clientId: "<CLIENTID>.apps.googleusercontent.com"
+			clientId: "<CLIENTID>.apps.googleusercontent.com",
+			// User lookup table as text file in format <unique user ID> <system user>. If no user lookup is needed, leave this blank
+			userLookupTable: "/path/to/user/lookup/table"
 		}
 	},
     // Port to listen on. It is advised to listen on a port other than 80 or 443, behind an SSL proxy
@@ -26,8 +28,6 @@ module.exports = {
     baseFolderTemplate: "/path/to/user/base/<username>",
     // Additional arguments to be passed to the backend process, defined as an array of strings
     additionalArgs: ["-threads", "4", "-omp_threads", "4"],
-    // User lookup table as text file in format <email address> <username>. If no user lookup is needed, leave this blank
-    userLookupTable: "/path/to/user/lookup/table",
     killCommand: "/path/to/carta/kill/script",
     // How long to wait before checking whether started process is still running and sending res
     startDelay: 100

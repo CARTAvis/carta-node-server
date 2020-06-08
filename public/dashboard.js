@@ -49,7 +49,7 @@ setButtonDisabled = (elementId, disabled) => {
 updateServerStatus = async () => {
     let hasServer = false;
     try {
-        const res = await apiCall("checkServer");
+        const res = await apiCall("server/checkServer");
         if (res.ok) {
             const body = await res.json();
             if (body.success && body.running) {
@@ -86,7 +86,7 @@ handleLogin = async () => {
     const body = {username, password};
 
     try {
-        const res = await apiCall("login", body, "post");
+        const res = await apiCall("auth/login", body, "post");
         if (res.ok) {
             onLoginSucceeded(username, "local");
         } else {
@@ -119,7 +119,7 @@ handleServerStart = async () => {
     setButtonDisabled("stop", true);
     try {
         try {
-            const res = await apiCall("startServer", undefined, "post");
+            const res = await apiCall("server/startServer", undefined, "post");
             const body = await res.json();
             if (!body.success) {
                 notyf.error("Failed to start CARTA server");
@@ -142,7 +142,7 @@ handleServerStop = async () => {
     setButtonDisabled("stop", true);
     try {
         try {
-            const res = await apiCall("stopServer", undefined, "post");
+            const res = await apiCall("server/stopServer", undefined, "post");
             const body = await res.json();
             if (body.success) {
                 // Handle CARTA server redirect
@@ -226,7 +226,7 @@ showLoginForm = (show) => {
 window.onload = async () => {
     if (document.cookie.includes("CARTA-Authorization")) {
         try {
-            const res = await apiCall("checkAuth");
+            const res = await apiCall("auth/checkAuth");
             if (res.ok) {
                 const body = await res.json();
                 if (body.success && body.username) {

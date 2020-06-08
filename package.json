@@ -2,9 +2,9 @@
   "name": "node_auth_test",
   "version": "1.0.0",
   "description": "",
-  "main": "index.ts",
+  "main": "src/index.ts",
   "scripts": {
-    "start": "npx ts-node index.ts"
+    "start": "npx ts-node src/index.ts"
   },
   "author": "",
   "license": "ISC",
@@ -19,6 +19,7 @@
     "google-auth-library": "^6.0.1",
     "http-proxy": "^1.18.1",
     "jsonwebtoken": "^8.5.1",
+    "mongodb": "^3.5.8",
     "ts-node": "^8.10.2",
     "typescript": "^3.9.5",
     "userid": "^1.0.0-beta.6"

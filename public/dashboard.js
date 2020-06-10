@@ -60,7 +60,7 @@ setButtonDisabled = (elementId, disabled) => {
 updateServerStatus = async () => {
     let hasServer = false;
     try {
-        const res = await apiCall("server/checkServer");
+        const res = await apiCall("server/status");
         if (res.ok) {
             const body = await res.json();
             if (body.success && body.running) {
@@ -131,7 +131,7 @@ handleServerStart = async () => {
     setButtonDisabled("stop", true);
     try {
         try {
-            const res = await apiCall("server/startServer", undefined, "post");
+            const res = await apiCall("server/start", undefined, "post");
             const body = await res.json();
             if (!body.success) {
                 notyf.error("Failed to start CARTA server");
@@ -154,7 +154,7 @@ handleServerStop = async () => {
     setButtonDisabled("stop", true);
     try {
         try {
-            const res = await apiCall("server/stopServer", undefined, "post");
+            const res = await apiCall("server/stop", undefined, "post");
             const body = await res.json();
             if (body.success) {
                 notyf.open({type: "info", message: "Stopped CARTA server successfully"});
@@ -238,7 +238,7 @@ showLoginForm = (show) => {
 
 window.onload = async () => {
     try {
-        const res = await apiCall("auth/checkAuth");
+        const res = await apiCall("auth/status");
         if (res.ok) {
             const body = await res.json();
             if (body.success && body.username) {

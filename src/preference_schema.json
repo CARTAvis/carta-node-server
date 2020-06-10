@@ -1,0 +1,245 @@
+{
+    "required": [
+        "username"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "username": {
+            "type": "string",
+            "minLength": 1
+        },
+        "theme": {
+            "type": "string",
+            "enum": [
+                "auto",
+                "light",
+                "dark"
+            ]
+        },
+        "autoLaunch": {
+            "type": "boolean"
+        },
+        "layout": {
+            "type": "string"
+        },
+        "cursorPosition": {
+            "type": "string",
+            "enum": [
+                "fixed",
+                "tracking"
+            ]
+        },
+        "zoomMode": {
+            "type": "string",
+            "enum": [
+                "fit",
+                "1.0x"
+            ],
+            "description": "TOOD: Switch from 1.0x to full"
+        },
+        "zoomPoint": {
+            "type": "string",
+            "enum": [
+                "cursor",
+                "center"
+            ]
+        },
+        "dragPanning": {
+            "type": "boolean"
+        },
+        "spectralMatchingType": {
+            "type": "string",
+            "enum": [
+                "VRAD",
+                "VOPT",
+                "FREQ",
+                "WAVE",
+                "AWAV",
+                "CHANNEL"
+            ]
+        },
+        "wcsMatchingType": {
+            "bsonType": "int",
+            "minimum": 0,
+            "maximum": 3
+        },
+        "scaling": {
+            "bsonType": "int",
+            "minimum": 0,
+            "maximum": 7
+        },
+        "colormap": {
+            "type": "string"
+        },
+        "percentile": {
+            "type": "number",
+            "maximum": 100,
+            "exclusiveMaximum": true,
+            "minimum": 0,
+            "exclusiveMinimum": true
+        },
+        "scalingAlpha": {
+            "type": "number",
+            "minimum": 1
+        },
+        "scalingGamma": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true
+        },
+        "nanColorHex": {
+            "type": "string",
+            "description": "TODO: validate color string"
+        },
+        "nanAlpha": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+        },
+        "contourGeneratorType": {
+            "type": "string",
+            "enum": [
+                "start-step-multiplier",
+                "min-max-scaling",
+                "percentages-ref.value",
+                "mean-sigma-list"
+            ]
+        },
+        "contourSmoothingMode": {
+            "bsonType": "int",
+            "minimum": 0,
+            "maximum": 2
+        },
+        "contourSmoothingFactor": {
+            "bsonType": "int",
+            "minimum": 0
+        },
+        "contourNumLevels": {
+            "bsonType": "int",
+            "minimum": 1
+        },
+        "contourThickness": {
+            "type": "number",
+            "minimum": 0
+        },
+        "contourColormapEnabled": {
+            "type": "boolean"
+        },
+        "contourColor": {
+            "type": "string",
+            "description": "TODO: validate color string"
+        },
+        "contourColormap": {
+            "type": "string"
+        },
+        "astColor": {
+            "bsonType": "int",
+            "minimum": 0
+        },
+        "astGridVisible": {
+            "type": "boolean"
+        },
+        "astLabelsVisible": {
+            "type": "boolean"
+        },
+        "wcsType": {
+            "type": "string",
+            "enum": [
+                "automatic",
+                "degrees",
+                "sexagesimal"
+            ]
+        },
+        "beamVisible": {
+            "type": "boolean"
+        },
+        "beamColor": {
+            "type": "string"
+        },
+        "beamType": {
+            "type": "string",
+            "enum": [
+                "Open",
+                "Solid"
+            ],
+            "description": "TODO: consistent capitalisation"
+        },
+        "beamWidth": {
+            "type": "number",
+            "minimum": 0
+        },
+        "regionColor": {
+            "type": "string",
+            "description": "TODO: validate color string"
+        },
+        "regionLineWidth": {
+            "type": "number",
+            "minimum": 0
+        },
+        "regionDashLength": {
+            "bsonType": "int",
+            "minimum": 0
+        },
+        "regionType": {
+            "bsonType": "int",
+            "minimum": 0,
+            "maximum": 6
+        },
+        "regionCreationMode": {
+            "type": "string",
+            "enum": [
+                "center",
+                "corner"
+            ]
+        },
+        "imageCompressionQuality": {
+            "bsonType": "int",
+            "minimum": 4,
+            "maximum": 32
+        },
+        "animationCompressionQuality": {
+            "bsonType": "int",
+            "minimum": 4,
+            "maximum": 32
+        },
+        "GPUTileCache": {
+            "bsonType": "int",
+            "minimum": 1
+        },
+        "systemTileCache": {
+            "bsonType": "int",
+            "minimum": 1
+        },
+        "contourDecimation": {
+            "bsonType": "int",
+            "minimum": 1,
+            "maximum": 32
+        },
+        "contourCompressionLevel": {
+            "bsonType": "int",
+            "minimum": 0,
+            "maximum": 19
+        },
+        "contourChunkSize": {
+            "bsonType": "int",
+            "minimum": 25000,
+            "maximum": 1000000
+        },
+        "contourControlMapWidth": {
+            "bsonType": "int",
+            "minimum": 128,
+            "maximum": 1024
+        },
+        "streamContoursWhileZooming": {
+            "type": "boolean"
+        },
+        "lowBandwidthMode": {
+            "type": "boolean"
+        },
+        "stopAnimationPlayback": {
+            "bsonType": "int",
+            "minimum": 5,
+            "maximum": 30
+        }
+    }
+}

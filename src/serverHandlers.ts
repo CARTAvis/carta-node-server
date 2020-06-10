@@ -74,7 +74,7 @@ async function handleStartServer(req: AuthenticatedRequest, res: express.Respons
     try {
         const port = nextAvailablePort();
         if (port < 0) {
-            res.status(400).json({success: false, message: `No available ports for the backend process`});
+            res.status(500).json({success: false, message: `No available ports for the backend process`});
             return;
         }
 
@@ -102,7 +102,7 @@ async function handleStartServer(req: AuthenticatedRequest, res: express.Respons
         // Check for early exit of backend process
         await delay(config.startDelay);
         if (child.exitCode || child.signalCode) {
-            res.status(400).json({success: false, message: `Process terminated within ${config.startDelay} ms`});
+            res.status(500).json({success: false, message: `Process terminated within ${config.startDelay} ms`});
             return;
         } else {
             console.log(`Started process with PID ${child.pid} for user ${req.username} on port ${port}`);
@@ -112,7 +112,7 @@ async function handleStartServer(req: AuthenticatedRequest, res: express.Respons
         }
     } catch (e) {
         console.log(`Error killing existing process belonging to user ${req.username}`);
-        res.status(400).json({success: false, message: `Problem starting process for user ${req.username}`});
+        res.status(500).json({success: false, message: `Problem starting process for user ${req.username}`});
         return;
     }
 }
@@ -136,11 +136,11 @@ async function handleStopServer(req: AuthenticatedRequest, res: express.Response
             processMap.delete(req.username);
             res.json({success: true});
         } else {
-            res.json({success: false, message: `No existing process belonging to user ${req.username}`});
+            res.status(400).json({success: false, message: `No existing process belonging to user ${req.username}`});
         }
     } catch (e) {
         console.log(`Error killing existing process belonging to user ${req.username}`);
-        res.status(400).json({success: false, message: "Problem killing existing process"});
+        res.status(500).json({success: false, message: "Problem killing existing process"});
     }
 }
 
@@ -187,9 +187,8 @@ export const createUpgradeHandler = (server: httpProxy) => async (req: IncomingM
     }
 }
 
-const serverRouter = express.Router();
-serverRouter.post("/startServer", authGuard, handleStartServer);
-serverRouter.post("/stopServer", authGuard, handleStopServer);
-serverRouter.get("/checkServer", authGuard, handleCheckServer);
+export const serverRouter = express.Router();
+serverRouter.post("/start", authGuard, handleStartServer);
+serverRouter.post("/stop", authGuard, handleStopServer);
+serverRouter.get("/status", authGuard, handleCheckServer);
 
-export const serverRoutes = serverRouter;

@@ -222,7 +222,7 @@ if (config.authProviders.local) {
     };
 } else {
     loginHandler = (req, res) => {
-        res.status(400).json({success: false, message: "Login not implemented"});
+        res.status(501).json({success: false, message: "Login not implemented"});
     };
 }
 
@@ -233,8 +233,6 @@ function handleCheckAuth(req: AuthenticatedRequest, res: express.Response) {
     });
 }
 
-const authRouter = express.Router();
+export const authRouter = express.Router();
 authRouter.post("/login", loginHandler);
-authRouter.get("/checkAuth", authGuard, handleCheckAuth);
-
-export const authRoutes = authRouter;
+authRouter.get("/status", authGuard, handleCheckAuth);

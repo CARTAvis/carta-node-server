@@ -2,7 +2,8 @@ import * as express from "express";
 import {Collection, MongoClient} from "mongodb";
 import {AuthenticatedRequest, authGuard} from "./auth";
 
-const preferenceSchema = require("./preference_schema.json");
+const PREFERENCE_SCHEMA_VERSION = 1;
+const preferenceSchema = require("./preference_schema_1.json");
 const config = require("../config/config.ts");
 
 let client: MongoClient;
@@ -55,7 +56,7 @@ async function handleGetPreferences(req: AuthenticatedRequest, res: express.Resp
     }
 }
 
-async function handleSetPreference(req: AuthenticatedRequest, res: express.Response) {
+async function handleSetPreferences(req: AuthenticatedRequest, res: express.Response) {
     if (!req.username) {
         res.status(403).json({success: false, message: "Invalid username"});
         return;
@@ -72,6 +73,8 @@ async function handleSetPreference(req: AuthenticatedRequest, res: express.Respo
         res.status(400).json({success: false, message: "Malformed preference update"});
         return;
     }
+
+    update.version = PREFERENCE_SCHEMA_VERSION;
 
     try {
         const updateResult = await preferenceCollection.updateOne({username: req.username}, {$set: update}, {upsert: true});
@@ -128,4 +131,4 @@ export const databaseRouter = express.Router();
 
 databaseRouter.get("/preferences", authGuard, handleGetPreferences);
 databaseRouter.delete("/preferences", authGuard, handleClearPreferences);
-databaseRouter.put("/preference", authGuard, handleSetPreference);
+databaseRouter.put("/preferences", authGuard, handleSetPreferences);

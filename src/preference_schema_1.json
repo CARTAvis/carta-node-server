@@ -1,9 +1,15 @@
 {
+    "title": "Preferences",
+    "description": "Schema for CARTA Preferences (Version 1)",
     "required": [
+        "version",
         "username"
     ],
-    "additionalProperties": false,
     "properties": {
+        "version": {
+            "type": "number",
+            "minimum": 1
+        },
         "username": {
             "type": "string",
             "minLength": 1
@@ -33,9 +39,8 @@
             "type": "string",
             "enum": [
                 "fit",
-                "1.0x"
-            ],
-            "description": "TOOD: Switch from 1.0x to full"
+                "full"
+            ]
         },
         "zoomPoint": {
             "type": "string",
@@ -59,12 +64,14 @@
             ]
         },
         "wcsMatchingType": {
-            "bsonType": "int",
+            "type": "number",
+            "multipleOf": 1.0,
             "minimum": 0,
             "maximum": 3
         },
         "scaling": {
-            "bsonType": "int",
+            "type": "number",
+            "multipleOf": 1.0,
             "minimum": 0,
             "maximum": 7
         },
@@ -106,16 +113,19 @@
             ]
         },
         "contourSmoothingMode": {
-            "bsonType": "int",
+            "type": "number",
+            "multipleOf": 1.0,
             "minimum": 0,
             "maximum": 2
         },
         "contourSmoothingFactor": {
-            "bsonType": "int",
+            "type": "number",
+            "multipleOf": 1.0,
             "minimum": 0
         },
         "contourNumLevels": {
-            "bsonType": "int",
+            "type": "number",
+            "multipleOf": 1.0,
             "minimum": 1
         },
         "contourThickness": {
@@ -133,7 +143,8 @@
             "type": "string"
         },
         "astColor": {
-            "bsonType": "int",
+            "type": "number",
+            "multipleOf": 1.0,
             "minimum": 0
         },
         "astGridVisible": {
@@ -159,10 +170,9 @@
         "beamType": {
             "type": "string",
             "enum": [
-                "Open",
-                "Solid"
-            ],
-            "description": "TODO: consistent capitalisation"
+                "open",
+                "solid"
+            ]
         },
         "beamWidth": {
             "type": "number",
@@ -177,11 +187,13 @@
             "minimum": 0
         },
         "regionDashLength": {
-            "bsonType": "int",
+            "type": "number",
+            "multipleOf": 1.0,
             "minimum": 0
         },
         "regionType": {
-            "bsonType": "int",
+            "type": "number",
+            "multipleOf": 1.0,
             "minimum": 0,
             "maximum": 6
         },
@@ -193,40 +205,48 @@
             ]
         },
         "imageCompressionQuality": {
-            "bsonType": "int",
+            "type": "number",
+            "multipleOf": 1.0,
             "minimum": 4,
             "maximum": 32
         },
         "animationCompressionQuality": {
-            "bsonType": "int",
+            "type": "number",
+            "multipleOf": 1.0,
             "minimum": 4,
             "maximum": 32
         },
         "GPUTileCache": {
-            "bsonType": "int",
-            "minimum": 1
+            "type": "number",
+            "multipleOf": 128,
+            "minimum": 512
         },
         "systemTileCache": {
-            "bsonType": "int",
-            "minimum": 1
+            "type": "number",
+            "multipleOf": 128,
+            "minimum": 1024
         },
         "contourDecimation": {
-            "bsonType": "int",
+            "type": "number",
+            "multipleOf": 1.0,
             "minimum": 1,
             "maximum": 32
         },
         "contourCompressionLevel": {
-            "bsonType": "int",
+            "type": "number",
+            "multipleOf": 1.0,
             "minimum": 0,
             "maximum": 19
         },
         "contourChunkSize": {
-            "bsonType": "int",
+            "type": "number",
+            "multipleOf": 25000,
             "minimum": 25000,
             "maximum": 1000000
         },
         "contourControlMapWidth": {
-            "bsonType": "int",
+            "type": "number",
+            "multipleOf": 128,
             "minimum": 128,
             "maximum": 1024
         },
@@ -237,7 +257,8 @@
             "type": "boolean"
         },
         "stopAnimationPlayback": {
-            "bsonType": "int",
+            "type": "number",
+            "multipleOf": 1.0,
             "minimum": 5,
             "maximum": 30
         }

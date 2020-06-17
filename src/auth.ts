@@ -2,7 +2,8 @@ import * as fs from "fs";
 import * as jwt from "jsonwebtoken";
 import * as express from "express";
 import * as userid from "userid";
-import {OAuth2Client} from "google-auth-library";
+import * as LdapAuth from "ldapauth-fork";
+import {auth, OAuth2Client} from "google-auth-library";
 import {VerifyOptions} from "jsonwebtoken";
 
 export type RequestHandler = (req: express.Request, res: express.Response) => void;
@@ -56,8 +57,8 @@ function readUserTable(issuer: string | string[], filename: string) {
     }
 }
 
-if (config.authProviders.local) {
-    const authConf = config.authProviders.local;
+if (config.authProviders.ldap) {
+    const authConf = config.authProviders.ldap;
     const publicKey = fs.readFileSync(authConf.publicKeyLocation);
     tokenVerifiers.set(authConf.issuer, (cookieString) => {
         const payload: any = jwt.verify(cookieString, publicKey, {algorithm: authConf.keyAlgorithm} as VerifyOptions);
@@ -188,37 +189,40 @@ export async function authGuard(req: AuthenticatedRequest, res: express.Response
 
 let loginHandler: RequestHandler;
 
-if (config.authProviders.local) {
-    const authConf = config.authProviders.local;
+if (config.authProviders.ldap) {
+    const authConf = config.authProviders.ldap;
     const privateKey = fs.readFileSync(authConf.privateKeyLocation);
 
+    const ldap = new LdapAuth(authConf.ldapOptions);
+    ldap.on('error', err => console.error('LdapAuth: ', err));
+    console.log(ldap);
+
     loginHandler = (req: express.Request, res: express.Response) => {
-        if (!req.body) {
-            res.status(400).json({success: false, message: "Malformed login request"});
-            return;
+        let username = req.body?.username;
+        const password = req.body?.password;
+
+        if (!username || !password) {
+            return res.status(400).json({success: false, message: "Malformed login request"});
         }
 
-        let username = req.body.username;
-        const password = req.body.password;
-
-        // Dummy auth: always accept as long as password matches dummy password
-        if (!username || password !== authConf.dummyPassword) {
-            res.status(403).json({success: false, message: "Invalid username/password combo"});
-        } else {
-            // verify that user exists on the system
-            try {
-                const uid = userid.uid(username);
-                console.log(`Authenticated as user ${username} with uid ${uid}`);
-                const token = jwt.sign({iss: authConf.issuer, username}, privateKey, {
-                    algorithm: authConf.keyAlgorithm,
-                    expiresIn: '1h'
-                });
-                res.cookie("CARTA-Authorization", token, {maxAge: 1000 * 60 * 60, secure: true, sameSite: "strict"});
-                res.json({success: true, message: "Successfully authenticated"});
-            } catch (e) {
-                res.status(403).json({success: false, message: "Invalid username/password combo"});
+        ldap.authenticate(username, password, (err, user) => {
+            if (err || user?.uid !== username) {
+                return res.status(403).json({success: false, message: "Invalid username/password combo"});
+            } else {
+                try {
+                    const uid = userid.uid(username);
+                    console.log(`Authenticated as user ${username} with uid ${uid}`);
+                    const token = jwt.sign({iss: authConf.issuer, username}, privateKey, {
+                        algorithm: authConf.keyAlgorithm,
+                        expiresIn: '1h'
+                    });
+                    res.cookie("CARTA-Authorization", token, {maxAge: 1000 * 60 * 60, secure: true, sameSite: "strict"});
+                    res.json({success: true, message: "Successfully authenticated"});
+                } catch (e) {
+                    res.status(403).json({success: false, message: "User does not exist"});
+                }
             }
-        }
+        });
     };
 } else {
     loginHandler = (req, res) => {

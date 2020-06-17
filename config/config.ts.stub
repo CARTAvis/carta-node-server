@@ -1,32 +1,38 @@
 module.exports = {
-	// One or more authProvider must be defined
-	authProviders: {
-		// Local username/password authentication
-		// Currently just uses a dummy password, but a PAM service would be appropriate
-		local: {
-			publicKeyLocation: "/path/to/your/public/key_in_pem_format",
-			privateKeyLocation: "/path/to/your/private/key_in_pem_format",
-			keyAlgorithm: "RS256",
-			dummyPassword: "helloworld",
-			issuer: "some_identifier",
-		},
-		google: {
-			clientId: "<CLIENTID>.apps.googleusercontent.com",
-			// List of valid domains to accept. If this is empty or undefined, all domains are accepted. Domain specified by "hd" field
-			validDomains: ["domain1"],
-			// User lookup table as text file in format <unique user ID> <system user>. If no user lookup is needed, leave this blank
-			userLookupTable: "/path/to/user/lookup/table"
-		},
-		external: {
-		    issuers: ["valid_issuer_1", "valid_issuer_2"],
-		    publicKeyLocation: "/path/to/public/key_in_pem_format",
-		    keyAlgorithm: "RS256",
-		    // Unique field to be used as username
-		    uniqueField: "sub",
-		    // User lookup table as text file in format <unique user ID> <system user>. If no user lookup is needed, leave this blank
-			userLookupTable: "/path/to/user/lookup/table"
-		}
-	},
+    // One or more authProvider must be defined
+    authProviders: {
+        // LDAP-based username/password authentication and token signing
+        ldap: {
+            publicKeyLocation: "/path/to/your/public/key_in_pem_format",
+            privateKeyLocation: "/path/to/your/private/key_in_pem_format",
+            keyAlgorithm: "RS256",
+            issuer: "some_identifier",
+            // Options to pass through to the LDAP Auth instance
+            ldapOptions: {
+                url: 'ldap://ldap.address:port',
+                searchBase: "dc=example",
+                searchFilter: "uid={{username}}",
+                starttls: true,
+                reconnect: true
+            }
+        },
+        google: {
+            clientId: "<CLIENTID>.apps.googleusercontent.com",
+            // List of valid domains to accept. If this is empty or undefined, all domains are accepted. Domain specified by "hd" field
+            validDomains: ["domain1"],
+            // User lookup table as text file in format <unique user ID> <system user>. If no user lookup is needed, leave this blank
+            userLookupTable: "/path/to/user/lookup/table"
+        },
+        external: {
+            issuers: ["valid_issuer_1", "valid_issuer_2"],
+            publicKeyLocation: "/path/to/public/key_in_pem_format",
+            keyAlgorithm: "RS256",
+            // Unique field to be used as username
+            uniqueField: "sub",
+            // User lookup table as text file in format <unique user ID> <system user>. If no user lookup is needed, leave this blank
+            userLookupTable: "/path/to/user/lookup/table"
+        }
+    },
     // Port to listen on. It is advised to listen on a port other than 80 or 443, behind an SSL proxy
     serverPort: 8000,
     // Range of ports to user for backend processes. Effectively limits the number of simultaneous users
@@ -40,4 +46,4 @@ module.exports = {
     killCommand: "/path/to/carta/kill/script",
     // How long to wait before checking whether started process is still running and sending res
     startDelay: 100
-  };
+};

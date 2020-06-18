@@ -195,7 +195,15 @@ if (config.authProviders.ldap) {
 
     const ldap = new LdapAuth(authConf.ldapOptions);
     ldap.on('error', err => console.error('LdapAuth: ', err));
-    console.log(ldap);
+    ldap.on('connect', v => console.log(`Ldap connected: ${v}`));
+    setTimeout(()=>{
+        const ldapConnected = (ldap as any)?._userClient?.connected;
+        if (ldapConnected) {
+            console.log("LDAP connected correctly");
+        } else {
+            console.error("LDAP not connected!");
+        }
+    }, 2000);
 
     loginHandler = (req: express.Request, res: express.Response) => {
         let username = req.body?.username;

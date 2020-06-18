@@ -33,6 +33,10 @@ module.exports = {
             userLookupTable: "/path/to/user/lookup/table"
         }
     },
+    database: {
+        url: "mongodb://localhost:27017",
+        databaseName: "CARTA"
+    },
     // Port to listen on. It is advised to listen on a port other than 80 or 443, behind an SSL proxy
     serverPort: 8000,
     // Range of ports to user for backend processes. Effectively limits the number of simultaneous users

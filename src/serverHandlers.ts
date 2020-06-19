@@ -1,6 +1,8 @@
 import * as express from "express";
-import * as cookie from "cookie";
 import * as httpProxy from "http-proxy";
+import * as url from "url";
+import * as querystring from "querystring";
+
 import {ChildProcess, spawn, spawnSync} from "child_process";
 import {delay} from "./util";
 import {AuthenticatedRequest, authGuard, getUser, verifyToken} from "./auth";
@@ -146,44 +148,40 @@ async function handleStopServer(req: AuthenticatedRequest, res: express.Response
 
 export const createUpgradeHandler = (server: httpProxy) => async (req: IncomingMessage, socket: any, head: any) => {
     try {
-        // Manually fetch and parse cookie, because we're not using express for this route
-        const cookieHeader = req.headers?.cookie;
-        if (!cookieHeader) {
-            socket.end();
-            return;
+        if (!req?.url) {
+            return socket.end();
         }
-        const cookies = cookie.parse(cookieHeader);
-        const tokenCookie = cookies?.["CARTA-Authorization"];
-
-        if (!tokenCookie) {
-            socket.end();
-            return;
+        let parsedUrl = url.parse(req.url);
+        if (!parsedUrl?.query) {
+            return socket.end();
+        }
+        let queryParameters = querystring.parse(parsedUrl.query);
+        const tokenString = queryParameters?.token;
+        if (!tokenString || Array.isArray(tokenString)) {
+            return socket.end();
         }
 
-        const token = await verifyToken(tokenCookie);
+        console.log(`WS upgrade with token="${tokenString}" as query parameter`);
+        const token = await verifyToken(tokenString);
         if (!token || !token.username) {
-            socket.end();
-            return;
+            return socket.end();
         }
         const username = getUser(token.username, token.iss);
         if (!username) {
-            socket.end();
-            return;
+            return socket.end();
         }
         const existingProcess = processMap.get(username);
 
         if (!existingProcess?.process || existingProcess.process.signalCode) {
-            socket.end();
-            return;
+            return socket.end();
         }
 
         if (existingProcess && !existingProcess.process.signalCode) {
             console.log(`Redirecting to backend process for ${username} (port ${existingProcess.port})`);
-            server.ws(req, socket, head, {target: {host: "localhost", port: existingProcess.port}});
-            return;
+            return server.ws(req, socket, head, {target: {host: "localhost", port: existingProcess.port}});
         }
     } catch (err) {
-        socket.end();
+        return socket.end();
     }
 }
 

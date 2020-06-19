@@ -3,7 +3,7 @@ import * as jwt from "jsonwebtoken";
 import * as express from "express";
 import * as userid from "userid";
 import * as LdapAuth from "ldapauth-fork";
-import {auth, OAuth2Client} from "google-auth-library";
+import {OAuth2Client} from "google-auth-library";
 import {VerifyOptions} from "jsonwebtoken";
 import ms = require('ms');
 

@@ -107,7 +107,7 @@ async function handleStartServer(req: AuthenticatedRequest, res: express.Respons
         } else {
             console.log(`Started process with PID ${child.pid} for user ${req.username} on port ${port}`);
             processMap.set(req.username, {port, process: child});
-            res.json({success: true, username: req.username, token: req.jwt});
+            res.json({success: true, username: req.username, token: req.token});
             return;
         }
     } catch (e) {

@@ -1,12 +1,23 @@
 module.exports = {
     // One or more authProvider must be defined
     authProviders: {
+    	// Dummy authentication, used for testing ONLY! Will accept any username/password combo if user exists
+    	dummy: {
+                publicKeyLocation: "/path/to/your/public/key_in_pem_format",
+                privateKeyLocation: "/path/to/your/private/key_in_pem_format",
+                keyAlgorithm: "RS256",
+                issuer: "some_identifier",
+                refreshTokenAge: "1w",
+				accessTokenAge: "15m"
+		},
         // LDAP-based username/password authentication and token signing
         ldap: {
             publicKeyLocation: "/path/to/your/public/key_in_pem_format",
             privateKeyLocation: "/path/to/your/private/key_in_pem_format",
             keyAlgorithm: "RS256",
             issuer: "some_identifier",
+            refreshTokenAge: "1w",
+			accessTokenAge: "15m",
             // Options to pass through to the LDAP Auth instance
             ldapOptions: {
                 url: 'ldap://ldap.address:port',

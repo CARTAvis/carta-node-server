@@ -5,9 +5,11 @@ import * as userid from "userid";
 import * as LdapAuth from "ldapauth-fork";
 import {auth, OAuth2Client} from "google-auth-library";
 import {VerifyOptions} from "jsonwebtoken";
+import ms = require('ms');
+
 
 export type RequestHandler = (req: express.Request, res: express.Response) => void;
-export type AuthenticatedRequest = express.Request & { username?: string, jwt?: string };
+export type AuthenticatedRequest = express.Request & { username?: string };
 
 // Token verifier function
 type Verifier = (cookieString: string) => any;
@@ -57,8 +59,8 @@ function readUserTable(issuer: string | string[], filename: string) {
     }
 }
 
-if (config.authProviders.ldap) {
-    const authConf = config.authProviders.ldap;
+
+function generateLocalVerifier(authConf: { issuer: string, keyAlgorithm: jwt.Algorithm, publicKeyLocation: string }) {
     const publicKey = fs.readFileSync(authConf.publicKeyLocation);
     tokenVerifiers.set(authConf.issuer, (cookieString) => {
         const payload: any = jwt.verify(cookieString, publicKey, {algorithm: authConf.keyAlgorithm} as VerifyOptions);
@@ -68,6 +70,15 @@ if (config.authProviders.ldap) {
             return undefined;
         }
     });
+}
+
+// Local providers
+if (config.authProviders.ldap) {
+    generateLocalVerifier(config.authProviders.ldap);
+}
+
+if (config.authProviders.dummy) {
+    generateLocalVerifier(config.authProviders.dummy);
 }
 
 if (config.authProviders.google) {
@@ -159,35 +170,29 @@ export function getUser(username: string, issuer: string) {
     }
 }
 
-// This can easily be replaced by another strategy for getting the token from a request. However, it's
-// easier to user cookies for the websocket proxy, since we can't specify custom headers in the browser.
-function getToken(req: express.Request) {
-    return req.cookies?.["CARTA-Authorization"];
-}
-
-// Express middleware to guard against unauthorized access. Writes the username and jwt to the request object
+// Express middleware to guard against unauthorized access. Writes the username to the request object
 export async function authGuard(req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) {
-    const tokenCookie = getToken(req);
-    if (tokenCookie) {
+    const tokenString = req.token;
+    if (tokenString) {
         try {
-            const token = await verifyToken(tokenCookie);
+            const token = await verifyToken(tokenString);
             if (!token || !token.username) {
-                res.status(403).json({success: false, message: "Not authorized"});
+                next({statusCode: 403, message: "Not authorized"});
             } else {
                 req.username = getUser(token.username, token.iss);
-                req.jwt = tokenCookie;
                 next();
             }
         } catch (err) {
-            res.json({success: false, message: err});
+            next({statusCode: 403, message: err.message});
         }
     } else {
-        res.status(403).json({success: false, message: "Not authorized"});
+        next({statusCode: 403, message: "Not authorized"});
     }
 }
 
 
 let loginHandler: RequestHandler;
+let refreshHandler: RequestHandler;
 
 if (config.authProviders.ldap) {
     const authConf = config.authProviders.ldap;
@@ -196,7 +201,7 @@ if (config.authProviders.ldap) {
     const ldap = new LdapAuth(authConf.ldapOptions);
     ldap.on('error', err => console.error('LdapAuth: ', err));
     ldap.on('connect', v => console.log(`Ldap connected: ${v}`));
-    setTimeout(()=>{
+    setTimeout(() => {
         const ldapConnected = (ldap as any)?._userClient?.connected;
         if (ldapConnected) {
             console.log("LDAP connected correctly");
@@ -210,31 +215,129 @@ if (config.authProviders.ldap) {
         const password = req.body?.password;
 
         if (!username || !password) {
-            return res.status(400).json({success: false, message: "Malformed login request"});
+            throw {statusCode: 400, message: "Malformed login request"};
         }
 
         ldap.authenticate(username, password, (err, user) => {
             if (err || user?.uid !== username) {
-                return res.status(403).json({success: false, message: "Invalid username/password combo"});
+                throw {statusCode: 403, message: "Invalid username/password combo"};
             } else {
                 try {
                     const uid = userid.uid(username);
                     console.log(`Authenticated as user ${username} with uid ${uid}`);
+                    const refreshToken = jwt.sign({
+                            iss: authConf.issuer,
+                            username,
+                            refreshToken: true
+                        },
+                        privateKey, {
+                            algorithm: authConf.keyAlgorithm,
+                            expiresIn: authConf.refreshTokenAge
+                        }
+                    );
+                    res.cookie("Refresh-Token", refreshToken, {
+                        path: "/api/auth/refresh",
+                        maxAge: ms(authConf.refreshTokenAge as string),
+                        httpOnly: true,
+                        secure: true,
+                        sameSite: "strict"
+                    });
+
                     const token = jwt.sign({iss: authConf.issuer, username}, privateKey, {
                         algorithm: authConf.keyAlgorithm,
-                        expiresIn: '1h'
+                        expiresIn: authConf.accessTokenAge
                     });
-                    res.cookie("CARTA-Authorization", token, {maxAge: 1000 * 60 * 60, secure: true, sameSite: "strict"});
-                    res.json({success: true, message: "Successfully authenticated"});
+                    res.json({success: true, token});
                 } catch (e) {
-                    res.status(403).json({success: false, message: "User does not exist"});
+                    throw {statusCode: 403, message: "User does not exist"};
                 }
             }
         });
     };
+} else if (config.authProviders.dummy) {
+    const authConf = config.authProviders.dummy;
+    const privateKey = fs.readFileSync(authConf.privateKeyLocation);
+
+    loginHandler = (req: express.Request, res: express.Response) => {
+        let username = req.body?.username;
+        const password = req.body?.password;
+
+        if (!username || !password) {
+            throw {statusCode: 400, message: "Malformed login request"};
+        }
+
+        try {
+            const uid = userid.uid(username);
+            console.log(`Authenticated as user ${username} with uid ${uid}`);
+
+            const refreshToken = jwt.sign({
+                    iss: authConf.issuer,
+                    username,
+                    refreshToken: true
+                },
+                privateKey, {
+                    algorithm: authConf.keyAlgorithm,
+                    expiresIn: authConf.refreshTokenAge
+                });
+            res.cookie("Refresh-Token", refreshToken, {
+                path: "/api/auth/refresh",
+                maxAge: ms(authConf.refreshTokenAge as string),
+                httpOnly: true,
+                secure: true,
+                sameSite: "strict"
+            });
+
+            const token = jwt.sign({iss: authConf.issuer, username}, privateKey, {
+                algorithm: authConf.keyAlgorithm,
+                expiresIn: authConf.accessTokenAge
+            });
+            res.json({success: true, token});
+        } catch (e) {
+            throw {statusCode: 403, message: "User does not exist"};
+        }
+    };
 } else {
     loginHandler = (req, res) => {
-        res.status(501).json({success: false, message: "Login not implemented"});
+        throw {statusCode: 501, message: "Login not implemented"};
+    };
+}
+
+function generateLocalRefreshHandler(authConf: { issuer: string, keyAlgorithm: jwt.Algorithm, privateKeyLocation: string, accessTokenAge: string }) {
+    const privateKey = fs.readFileSync(authConf.privateKeyLocation);
+
+    return async (req: express.Request, res: express.Response) => {
+        const refreshTokenCookie = req.cookies["Refresh-Token"];
+
+        if (refreshTokenCookie) {
+            try {
+                const refreshToken = await verifyToken(refreshTokenCookie);
+                if (!refreshToken || !refreshToken.username || !refreshToken.refreshToken) {
+                    res.status(403).json({success: false, message: "Not authorized"});
+                } else {
+                    const uid = userid.uid(refreshToken.username);
+                    const token = jwt.sign({iss: authConf.issuer, username: refreshToken.username}, privateKey, {
+                        algorithm: authConf.keyAlgorithm,
+                        expiresIn: authConf.accessTokenAge
+                    });
+                    console.log(`Refreshed access token for user ${refreshToken.username} with uid ${uid}`);
+                    res.json({success: true, token, username: refreshToken.username});
+                }
+            } catch (err) {
+                throw {statusCode: 400, message: "Invalid refresh token"};
+            }
+        } else {
+            throw {statusCode: 400, message: "Missing refresh token"};
+        }
+    }
+}
+
+if (config.authProviders.ldap) {
+    refreshHandler = generateLocalRefreshHandler(config.authProviders.ldap);
+} else if (config.authProviders.dummy) {
+    refreshHandler = generateLocalRefreshHandler(config.authProviders.dummy);
+} else {
+    refreshHandler = (req, res) => {
+        throw {statusCode: 501, message: "Token refresh not implemented"};
     };
 }
 
@@ -247,4 +350,5 @@ function handleCheckAuth(req: AuthenticatedRequest, res: express.Response) {
 
 export const authRouter = express.Router();
 authRouter.post("/login", loginHandler);
+authRouter.post("/refresh", refreshHandler);
 authRouter.get("/status", authGuard, handleCheckAuth);

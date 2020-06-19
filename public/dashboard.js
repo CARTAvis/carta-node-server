@@ -9,21 +9,31 @@ const notyf = new Notyf({
         background: "#4c84af",
     }]
 });
-const apiBase = `${window.location.href}/api`;
+const apiBase = `${window.location.href}api`;
 let serverCheckHandle;
 
 let authenticationType = "";
 let authenticatedUser = "";
+let token = "";
 let serverRunning = false;
 
-apiCall = (callName, jsonBody, method) => {
+apiCall = async (callName, jsonBody, method, authRequired) => {
     const options = {
         method: method || "get"
     };
     if (jsonBody) {
         options.body = JSON.stringify(jsonBody);
         options.headers = {"Content-Type": "application/json"}
+    } else {
+        options.headers = {};
     }
+
+    if (token) {
+        options.headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    // TODO: automatically refresh token!
+
     return fetch(`${apiBase}/${callName}`, options);
 }
 
@@ -60,7 +70,7 @@ setButtonDisabled = (elementId, disabled) => {
 updateServerStatus = async () => {
     let hasServer = false;
     try {
-        const res = await apiCall("server/status");
+        const res = await apiCall("server/status", undefined, "get", true);
         if (res.ok) {
             const body = await res.json();
             if (body.success && body.running) {
@@ -100,7 +110,9 @@ handleLogin = async () => {
     try {
         const res = await apiCall("auth/login", body, "post");
         if (res.ok) {
-            onLoginSucceeded(username, "local");
+            const body = await res.json();
+            token = body.token;
+            await onLoginSucceeded(username, "local");
         } else {
             onLoginFailed(res.status);
         }
@@ -112,12 +124,14 @@ handleLogin = async () => {
 
 
 onLoginFailed = (status) => {
+    token = "";
     notyf.error(status === 403 ? "Invalid username/password combination" : "Could not authenticate correctly");
 }
 
 onLoginSucceeded = async (username, type) => {
     authenticatedUser = username;
     authenticationType = type;
+    localStorage.setItem("authenticationType", type);
     notyf.success(`Logged in as ${authenticatedUser}`);
     showLoginForm(false);
     showCartaForm(true);
@@ -131,7 +145,7 @@ handleServerStart = async () => {
     setButtonDisabled("stop", true);
     try {
         try {
-            const res = await apiCall("server/start", undefined, "post");
+            const res = await apiCall("server/start", undefined, "post", true);
             const body = await res.json();
             if (!body.success) {
                 notyf.error("Failed to start CARTA server");
@@ -154,7 +168,7 @@ handleServerStop = async () => {
     setButtonDisabled("stop", true);
     try {
         try {
-            const res = await apiCall("server/stop", undefined, "post");
+            const res = await apiCall("server/stop", undefined, "post", true);
             const body = await res.json();
             if (body.success) {
                 notyf.open({type: "info", message: "Stopped CARTA server successfully"});
@@ -185,6 +199,8 @@ handleLogout = async () => {
     showCartaForm(false);
     showLoginForm(true);
     // Remove cookie
+    localStorage.removeItem("authenticationType");
+    // TODO: remove refresh cookie
     document.cookie = "CARTA-Authorization=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 }
 
@@ -197,8 +213,7 @@ initGoogleAuth = () => {
 
 onSignIn = (googleUser) => {
     const profile = googleUser.getBasicProfile();
-    const idToken = googleUser.getAuthResponse().id_token;
-    document.cookie = `CARTA-Authorization=${idToken};secure;samesite=strict`;
+    token = googleUser.getAuthResponse().id_token;
     onLoginSucceeded(profile.getEmail(), "google");
 }
 
@@ -237,18 +252,23 @@ showLoginForm = (show) => {
 }
 
 window.onload = async () => {
-    try {
-        const res = await apiCall("auth/status");
-        if (res.ok) {
-            const body = await res.json();
-            if (body.success && body.username) {
-                await onLoginSucceeded(body.username, "jwt");
-            } else {
-                await handleLogout();
+    const existingLoginType = localStorage.getItem("authenticationType");
+    if (existingLoginType === "local") {
+        try {
+            const res = await apiCall("auth/refresh", {}, "post");
+            if (res.ok) {
+                const body = await res.json();
+                if (body.success && body.username) {
+                    console.log("Refreshed access token!");
+                    token = body.token;
+                    await onLoginSucceeded(body.username, "local");
+                } else {
+                    await handleLogout();
+                }
             }
+        } catch (e) {
+            console.log(e);
         }
-    } catch (e) {
-        console.log(e);
     }
 
     // Wire up buttons

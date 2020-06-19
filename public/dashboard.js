@@ -15,6 +15,7 @@ let serverCheckHandle;
 let authenticationType = "";
 let authenticatedUser = "";
 let token = "";
+let tokenExpiryTime = -1;
 let serverRunning = false;
 
 apiCall = async (callName, jsonBody, method, authRequired) => {
@@ -32,9 +33,54 @@ apiCall = async (callName, jsonBody, method, authRequired) => {
         options.headers["Authorization"] = `Bearer ${token}`;
     }
 
-    // TODO: automatically refresh token!
-
+    const currentTime = Date.now() / 1000;
+    // If refresh token expires in under 10 seconds, attempt to refresh before making the call
+    if (authRequired && tokenExpiryTime < currentTime + 10) {
+        try {
+            if (authenticationType === "local") {
+                await refreshLocalToken();
+            } else if (authenticationType === "google") {
+                await refreshGoogleToken();
+            }
+        } catch (e) {
+            console.log(e);
+        }
+    }
     return fetch(`${apiBase}/${callName}`, options);
+}
+
+function decodeJWT(tokenString) {
+    try {
+        const [header, payload] = tokenString.split(".");
+        return {
+            header: JSON.parse(atob(header)),
+            payload: JSON.parse(atob(payload))
+        };
+    } catch (e) {
+        return undefined;
+    }
+}
+
+function setToken(t) {
+    token = t;
+    const decodedToken = decodeJWT(t);
+    if (decodedToken && decodedToken.payload && decodedToken.payload.exp) {
+        tokenExpiryTime = decodedToken.payload.exp;
+        const currentTime = Date.now() / 1000;
+        const dt = tokenExpiryTime - currentTime;
+        if (isFinite(dt) && dt > 0) {
+            console.log(`Token updated and valid for ${dt.toFixed()} seconds`);
+        } else {
+            clearToken();
+        }
+    } else {
+        tokenExpiryTime = -1;
+    }
+}
+
+function clearToken() {
+    token = undefined;
+    tokenExpiryTime = -1;
 }
 
 showMessage = (message, error, elementId) => {
@@ -111,7 +157,8 @@ handleLogin = async () => {
         const res = await apiCall("auth/login", body, "post");
         if (res.ok) {
             const body = await res.json();
-            token = body.token;
+            setToken(body.token);
+
             await onLoginSucceeded(username, "local");
         } else {
             onLoginFailed(res.status);
@@ -122,9 +169,8 @@ handleLogin = async () => {
     setButtonDisabled("login", false);
 };
 
-
 onLoginFailed = (status) => {
-    token = "";
+    clearToken();
     notyf.error(status === 403 ? "Invalid username/password combination" : "Could not authenticate correctly");
 }
 
@@ -200,6 +246,7 @@ handleLogout = async () => {
     showLoginForm(true);
     // Remove cookie
     localStorage.removeItem("authenticationType");
+    clearToken();
     // TODO: remove refresh cookie
     document.cookie = "CARTA-Authorization=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 }
@@ -213,7 +260,7 @@ initGoogleAuth = () => {
 
 onSignIn = (googleUser) => {
     const profile = googleUser.getBasicProfile();
-    token = googleUser.getAuthResponse().id_token;
+    setToken(googleUser.getAuthResponse().id_token);
     onLoginSucceeded(profile.getEmail(), "google");
 }
 
@@ -227,6 +274,41 @@ handleGoogleLogout = async () => {
         }
     } catch (err) {
         notyf.error("Error signing out of Google");
+        console.log(err);
+    }
+}
+
+refreshGoogleToken = async () => {
+    try {
+        if (gapi && gapi.auth2) {
+            const authInstance = gapi.auth2.getAuthInstance();
+            if (authInstance && authInstance.currentUser) {
+                const user = authInstance.currentUser.get();
+                if (user) {
+                    const res = await user.reloadAuthResponse();
+                    if (res && res.id_token) {
+                        setToken(res.id_token);
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        notyf.error("Error refreshing Google login");
+        console.log(err);
+    }
+}
+
+refreshLocalToken = async () => {
+    try {
+        const res = await apiCall("auth/refresh", {}, "post");
+        if (res.ok) {
+            const body = await res.json();
+            if (body.success && body.username) {
+                setToken(body.token);
+            }
+        }
+    } catch (err) {
+        notyf.error("Error refreshing authentication");
         console.log(err);
     }
 }
@@ -259,8 +341,7 @@ window.onload = async () => {
             if (res.ok) {
                 const body = await res.json();
                 if (body.success && body.username) {
-                    console.log("Refreshed access token!");
-                    token = body.token;
+                    setToken(body.token);
                     await onLoginSucceeded(body.username, "local");
                 } else {
                     await handleLogout();

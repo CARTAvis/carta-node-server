@@ -4,7 +4,7 @@ import * as url from "url";
 import * as querystring from "querystring";
 
 import {ChildProcess, spawn, spawnSync} from "child_process";
-import {delay} from "./util";
+import {delay, noCache} from "./util";
 import {AuthenticatedRequest, authGuard, getUser, verifyToken} from "./auth";
 import {IncomingMessage} from "http";
 
@@ -186,7 +186,7 @@ export const createUpgradeHandler = (server: httpProxy) => async (req: IncomingM
 }
 
 export const serverRouter = express.Router();
-serverRouter.post("/start", authGuard, handleStartServer);
-serverRouter.post("/stop", authGuard, handleStopServer);
-serverRouter.get("/status", authGuard, handleCheckServer);
+serverRouter.post("/start", authGuard, noCache, handleStartServer);
+serverRouter.post("/stop", authGuard, noCache, handleStopServer);
+serverRouter.get("/status", authGuard, noCache, handleCheckServer);
 

@@ -157,7 +157,7 @@ handleLogin = async () => {
         const res = await apiCall("auth/login", body, "post");
         if (res.ok) {
             const body = await res.json();
-            setToken(body.token);
+            setToken(body.access_token);
 
             await onLoginSucceeded(username, "local");
         } else {
@@ -304,7 +304,7 @@ refreshLocalToken = async () => {
         if (res.ok) {
             const body = await res.json();
             if (body.success && body.username) {
-                setToken(body.token);
+                setToken(body.access_token);
             }
         }
     } catch (err) {
@@ -341,7 +341,7 @@ window.onload = async () => {
             if (res.ok) {
                 const body = await res.json();
                 if (body.success && body.username) {
-                    setToken(body.token);
+                    setToken(body.access_token);
                     await onLoginSucceeded(body.username, "local");
                 } else {
                     await handleLogout();

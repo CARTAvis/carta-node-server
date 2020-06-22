@@ -6,6 +6,7 @@ import * as LdapAuth from "ldapauth-fork";
 import {OAuth2Client} from "google-auth-library";
 import {VerifyOptions} from "jsonwebtoken";
 import ms = require('ms');
+import {noCache} from "./util";
 
 
 export type RequestHandler = (req: express.Request, res: express.Response) => void;
@@ -243,11 +244,12 @@ if (config.authProviders.ldap) {
                         sameSite: "strict"
                     });
 
-                    const token = jwt.sign({iss: authConf.issuer, username}, privateKey, {
+                    const access_token = jwt.sign({iss: authConf.issuer, username}, privateKey, {
                         algorithm: authConf.keyAlgorithm,
                         expiresIn: authConf.accessTokenAge
                     });
-                    res.json({success: true, token});
+
+                    res.json({success: true, access_token, token_type: "bearer"});
                 } catch (e) {
                     throw {statusCode: 403, message: "User does not exist"};
                 }
@@ -287,11 +289,12 @@ if (config.authProviders.ldap) {
                 sameSite: "strict"
             });
 
-            const token = jwt.sign({iss: authConf.issuer, username}, privateKey, {
+            const access_token = jwt.sign({iss: authConf.issuer, username}, privateKey, {
                 algorithm: authConf.keyAlgorithm,
                 expiresIn: authConf.accessTokenAge
             });
-            res.json({success: true, token});
+
+            res.json({success: true, access_token, token_type: "bearer"});
         } catch (e) {
             throw {statusCode: 403, message: "User does not exist"};
         }
@@ -315,12 +318,12 @@ function generateLocalRefreshHandler(authConf: { issuer: string, keyAlgorithm: j
                     res.status(403).json({success: false, message: "Not authorized"});
                 } else {
                     const uid = userid.uid(refreshToken.username);
-                    const token = jwt.sign({iss: authConf.issuer, username: refreshToken.username}, privateKey, {
+                    const access_token = jwt.sign({iss: authConf.issuer, username: refreshToken.username}, privateKey, {
                         algorithm: authConf.keyAlgorithm,
                         expiresIn: authConf.accessTokenAge
                     });
                     console.log(`Refreshed access token for user ${refreshToken.username} with uid ${uid}`);
-                    res.json({success: true, token, username: refreshToken.username});
+                    res.json({success: true, access_token, token_type: "bearer", username: refreshToken.username});
                 }
             } catch (err) {
                 throw {statusCode: 400, message: "Invalid refresh token"};
@@ -349,6 +352,6 @@ function handleCheckAuth(req: AuthenticatedRequest, res: express.Response) {
 }
 
 export const authRouter = express.Router();
-authRouter.post("/login", loginHandler);
-authRouter.post("/refresh", refreshHandler);
-authRouter.get("/status", authGuard, handleCheckAuth);
+authRouter.post("/login", noCache, loginHandler);
+authRouter.post("/refresh", noCache, refreshHandler);
+authRouter.get("/status", authGuard, noCache, handleCheckAuth);

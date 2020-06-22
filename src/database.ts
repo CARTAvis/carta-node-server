@@ -1,6 +1,7 @@
 import * as express from "express";
 import {Collection, MongoClient} from "mongodb";
 import {AuthenticatedRequest, authGuard} from "./auth";
+import {noCache} from "./util";
 
 const PREFERENCE_SCHEMA_VERSION = 1;
 const preferenceSchema = require("./preference_schema_1.json");
@@ -129,6 +130,6 @@ async function handleClearPreferences(req: AuthenticatedRequest, res: express.Re
 
 export const databaseRouter = express.Router();
 
-databaseRouter.get("/preferences", authGuard, handleGetPreferences);
-databaseRouter.delete("/preferences", authGuard, handleClearPreferences);
-databaseRouter.put("/preferences", authGuard, handleSetPreferences);
+databaseRouter.get("/preferences", authGuard, noCache, handleGetPreferences);
+databaseRouter.delete("/preferences", authGuard, noCache, handleClearPreferences);
+databaseRouter.put("/preferences", authGuard, noCache, handleSetPreferences);

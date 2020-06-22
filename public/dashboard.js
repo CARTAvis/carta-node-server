@@ -303,7 +303,7 @@ refreshLocalToken = async () => {
         const res = await apiCall("auth/refresh", {}, "post");
         if (res.ok) {
             const body = await res.json();
-            if (body.success && body.username) {
+            if (body.access_token) {
                 setToken(body.access_token);
             }
         }
@@ -340,7 +340,7 @@ window.onload = async () => {
             const res = await apiCall("auth/refresh", {}, "post");
             if (res.ok) {
                 const body = await res.json();
-                if (body.success && body.username) {
+                if (body.access_token) {
                     setToken(body.access_token);
                     await onLoginSucceeded(body.username, "local");
                 } else {

@@ -177,7 +177,6 @@ export const createUpgradeHandler = (server: httpProxy) => async (req: IncomingM
             return socket.end();
         }
 
-        console.log(`WS upgrade with token="${tokenString}" as query parameter`);
         const token = await verifyToken(tokenString);
         if (!token || !token.username) {
             return socket.end();

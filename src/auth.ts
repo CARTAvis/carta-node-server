@@ -10,6 +10,7 @@ import {noCache} from "./util";
 
 
 export type RequestHandler = (req: express.Request, res: express.Response) => void;
+export type AsyncRequestHandler = (req: express.Request, res: express.Response, next: express.NextFunction) => void;
 export type AuthenticatedRequest = express.Request & { username?: string };
 
 // Token verifier function
@@ -193,7 +194,7 @@ export async function authGuard(req: AuthenticatedRequest, res: express.Response
 
 
 let loginHandler: RequestHandler;
-let refreshHandler: RequestHandler;
+let refreshHandler: AsyncRequestHandler;
 
 if (config.authProviders.ldap) {
     const authConf = config.authProviders.ldap;
@@ -319,14 +320,14 @@ function logoutHandler(req: express.Request, res: express.Response) {
 function generateLocalRefreshHandler(authConf: { issuer: string, keyAlgorithm: jwt.Algorithm, privateKeyLocation: string, accessTokenAge: string }) {
     const privateKey = fs.readFileSync(authConf.privateKeyLocation);
 
-    return async (req: express.Request, res: express.Response) => {
+    return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
         const refreshTokenCookie = req.cookies["Refresh-Token"];
 
         if (refreshTokenCookie) {
             try {
                 const refreshToken = await verifyToken(refreshTokenCookie);
                 if (!refreshToken || !refreshToken.username || !refreshToken.refreshToken) {
-                    res.status(403).json({success: false, message: "Not authorized"});
+                    next({statusCode: 403, message: "Not authorized"});
                 } else {
                     const uid = userid.uid(refreshToken.username);
                     const access_token = jwt.sign({iss: authConf.issuer, username: refreshToken.username}, privateKey, {
@@ -337,10 +338,10 @@ function generateLocalRefreshHandler(authConf: { issuer: string, keyAlgorithm: j
                     res.json({access_token, token_type: "bearer", username: refreshToken.username});
                 }
             } catch (err) {
-                throw {statusCode: 400, message: "Invalid refresh token"};
+                next({statusCode: 400, message: "Invalid refresh token"});
             }
         } else {
-            throw {statusCode: 400, message: "Missing refresh token"};
+            next({statusCode: 400, message: "Missing refresh token"});
         }
     }
 }

@@ -32,15 +32,13 @@ export async function initDB() {
     }
 }
 
-async function handleGetPreferences(req: AuthenticatedRequest, res: express.Response) {
+async function handleGetPreferences(req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) {
     if (!req.username) {
-        res.status(403).json({success: false, message: "Invalid username"});
-        return;
+        return next({statusCode: 403, message: "Invalid username"});
     }
 
     if (!preferenceCollection) {
-        res.status(501).json({success: false, message: "Database not configured"});
-        return;
+        return next({statusCode: 501, message: "Database not configured"});
     }
 
     try {
@@ -48,31 +46,27 @@ async function handleGetPreferences(req: AuthenticatedRequest, res: express.Resp
         if (doc) {
             res.json({success: true, preferences: doc});
         } else {
-            res.status(500).json({success: false, message: "Problem retrieving preferences"});
+            return next({statusCode: 500, message: "Problem retrieving preferences"});
         }
     } catch (err) {
         console.log(err);
-        res.status(500).json({success: false, message: "Problem retrieving preferences"});
-        return;
+        return next({statusCode: 500, message: "Problem retrieving preferences"});
     }
 }
 
-async function handleSetPreferences(req: AuthenticatedRequest, res: express.Response) {
+async function handleSetPreferences(req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) {
     if (!req.username) {
-        res.status(403).json({success: false, message: "Invalid username"});
-        return;
+        return next({statusCode: 403, message: "Invalid username"});
     }
 
     if (!preferenceCollection) {
-        res.status(501).json({success: false, message: "Database not configured"});
-        return;
+        return next({statusCode: 501, message: "Database not configured"});
     }
 
     const update = req.body;
     // Check for malformed update
     if (!update || !Object.keys(update).length || update.username || update._id) {
-        res.status(400).json({success: false, message: "Malformed preference update"});
-        return;
+        return next({statusCode: 400, message: "Malformed preference update"});
     }
 
     update.version = PREFERENCE_SCHEMA_VERSION;
@@ -82,31 +76,27 @@ async function handleSetPreferences(req: AuthenticatedRequest, res: express.Resp
         if (updateResult.result?.ok) {
             res.json({success: true});
         } else {
-            res.status(500).json({success: false, message: "Problem updating preferences"});
+            return next({statusCode: 500, message: "Problem updating preferences"});
         }
     } catch (err) {
         console.log(err.errmsg);
-        res.status(500).json({success: false, message: err.errmsg});
-        return;
+        return next({statusCode: 500, message: err.errmsg});
     }
 }
 
-async function handleClearPreferences(req: AuthenticatedRequest, res: express.Response) {
+async function handleClearPreferences(req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) {
     if (!req.username) {
-        res.status(403).json({success: false, message: "Invalid username"});
-        return;
+        return next({statusCode: 403, message: "Invalid username"});
     }
 
     if (!preferenceCollection) {
-        res.status(501).json({success: false, message: "Database not configured"});
-        return;
+        return next({statusCode: 501, message: "Database not configured"});
     }
 
     const keys: string[] = req.body?.keys;
     // Check for malformed update
     if (!keys || !Array.isArray(keys) || !keys.length) {
-        res.status(400).json({success: false, message: "Malformed list of keys"});
-        return;
+        return next({statusCode: 400, message: "Malformed key list"});
     }
 
     const update: any = {};
@@ -119,12 +109,11 @@ async function handleClearPreferences(req: AuthenticatedRequest, res: express.Re
         if (updateResult.result?.ok) {
             res.json({success: true});
         } else {
-            res.status(500).json({success: false, message: "Problem clearing preferences"});
+            return next({statusCode: 500, message: "Problem clearing preferences"});
         }
     } catch (err) {
         console.log(err);
-        res.status(500).json({success: false, message: "Problem clearing preferences"});
-        return;
+        return next({statusCode: 500, message: "Problem clearing preferences"});
     }
 }
 

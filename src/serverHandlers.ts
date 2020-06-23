@@ -50,12 +50,11 @@ function handleCheckServer(req: AuthenticatedRequest, res: express.Response) {
     }
 }
 
-async function handleStartServer(req: AuthenticatedRequest, res: express.Response) {
+async function handleStartServer(req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) {
     const username = req.username;
     const forceRestart = req.body?.forceRestart;
     if (!username) {
-        res.status(403).json({success: false, message: "Invalid username"});
-        return;
+        return next({statusCode: 403, message: "Invalid username"});
     }
 
     const existingProcess = processMap.get(username);
@@ -74,7 +73,7 @@ async function handleStartServer(req: AuthenticatedRequest, res: express.Respons
                 }
             } catch (e) {
                 console.log(`Error killing existing process belonging to user ${username}`);
-                throw {statusCode: 400, message: "Problem killing existing process"};
+                return next({statusCode: 400, message: "Problem killing existing process"});
             }
         } else {
             return res.json({success: true, existing: true});
@@ -84,7 +83,7 @@ async function handleStartServer(req: AuthenticatedRequest, res: express.Respons
             await startServer(username);
             return res.json({success: true});
         } catch (e) {
-            throw e;
+            return next(e);
         }
     }
 }
@@ -135,10 +134,9 @@ async function startServer(username: string) {
     }
 }
 
-async function handleStopServer(req: AuthenticatedRequest, res: express.Response) {
+async function handleStopServer(req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) {
     if (!req.username) {
-        res.status(403).json({success: false, message: "Invalid username"});
-        return;
+        return next({statusCode: 403, message: "Invalid username"});
     }
 
     // Kill existing backend process for this
@@ -154,11 +152,11 @@ async function handleStopServer(req: AuthenticatedRequest, res: express.Response
             processMap.delete(req.username);
             res.json({success: true});
         } else {
-            res.status(400).json({success: false, message: `No existing process belonging to user ${req.username}`});
+            return next({statusCode: 400, message: `No existing process belonging to user ${req.username}`});
         }
     } catch (e) {
         console.log(`Error killing existing process belonging to user ${req.username}`);
-        res.status(500).json({success: false, message: "Problem killing existing process"});
+        return next({statusCode: 500, message: "Problem killing existing process"});
     }
 }
 

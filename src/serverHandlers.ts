@@ -77,7 +77,7 @@ async function handleStartServer(req: AuthenticatedRequest, res: express.Respons
                 throw {statusCode: 400, message: "Problem killing existing process"};
             }
         } else {
-            return res.json({success: true});
+            return res.json({success: true, existing: true});
         }
     } else {
         try {

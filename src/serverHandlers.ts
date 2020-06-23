@@ -51,41 +51,58 @@ function handleCheckServer(req: AuthenticatedRequest, res: express.Response) {
 }
 
 async function handleStartServer(req: AuthenticatedRequest, res: express.Response) {
-    if (!req.username) {
+    const username = req.username;
+    const forceRestart = req.body?.forceRestart;
+    if (!username) {
         res.status(403).json({success: false, message: "Invalid username"});
         return;
     }
 
-    // Kill existing backend process for this
-    try {
-        const existingProcess = processMap.get(req.username);
-        if (existingProcess) {
-            // Kill the process via the kill script
-            spawnSync("sudo", ["-u", `${req.username}`, config.killCommand, `${existingProcess.process.pid}`]);
-            // Delay to allow the parent process to exit
-            await delay(10);
-            processMap.delete(req.username);
-        }
-    } catch (e) {
-        console.log(`Error killing existing process belonging to user ${req.username}`);
-        res.status(400).json({success: false, message: "Problem killing existing process"});
-        return;
-    }
+    const existingProcess = processMap.get(username);
 
+    if (existingProcess) {
+        if (forceRestart) {
+            // Kill existing backend process for this
+            try {
+                const existingProcess = processMap.get(username);
+                if (existingProcess) {
+                    // Kill the process via the kill script
+                    spawnSync("sudo", ["-u", `${username}`, config.killCommand, `${existingProcess.process.pid}`]);
+                    // Delay to allow the parent process to exit
+                    await delay(10);
+                    processMap.delete(username);
+                }
+            } catch (e) {
+                console.log(`Error killing existing process belonging to user ${username}`);
+                throw {statusCode: 400, message: "Problem killing existing process"};
+            }
+        } else {
+            return res.json({success: true});
+        }
+    } else {
+        try {
+            await startServer(username);
+            return res.json({success: true});
+        } catch (e) {
+            throw e;
+        }
+    }
+}
+
+async function startServer(username: string) {
     // Spawn a new process
     try {
         const port = nextAvailablePort();
         if (port < 0) {
-            res.status(500).json({success: false, message: `No available ports for the backend process`});
-            return;
+            throw {statusCode: 500, message: "No available ports for the backend process"};
         }
 
         let args = [
-            "-u", `${req.username}`,
+            "-u", `${username}`,
             config.processCommand,
             "-port", `${port}`,
-            "-root", config.rootFolderTemplate.replace("<username>", req.username),
-            "-base", config.baseFolderTemplate.replace("<username>", req.username),
+            "-root", config.rootFolderTemplate.replace("<username>", username),
+            "-base", config.baseFolderTemplate.replace("<username>", username),
         ];
 
         if (config.additionalArgs) {
@@ -96,26 +113,25 @@ async function handleStartServer(req: AuthenticatedRequest, res: express.Respons
         child.stdout.on("data", data => console.log(data.toString()));
         child.on("close", code => {
             console.log(`Process ${child.pid} closed with code ${code} and signal ${child.signalCode}`);
-            if (req.username) {
-                processMap.delete(req.username);
-            }
+            processMap.delete(username);
         });
 
         // Check for early exit of backend process
         await delay(config.startDelay);
         if (child.exitCode || child.signalCode) {
-            res.status(500).json({success: false, message: `Process terminated within ${config.startDelay} ms`});
-            return;
+            throw {statusCode: 500, message: `Problem starting process for user ${username}`};
         } else {
-            console.log(`Started process with PID ${child.pid} for user ${req.username} on port ${port}`);
-            processMap.set(req.username, {port, process: child});
-            res.json({success: true, username: req.username, token: req.token});
+            console.log(`Started process with PID ${child.pid} for user ${username} on port ${port}`);
+            processMap.set(username, {port, process: child});
             return;
         }
     } catch (e) {
-        console.log(`Error killing existing process belonging to user ${req.username}`);
-        res.status(500).json({success: false, message: `Problem starting process for user ${req.username}`});
-        return;
+        console.log(`Error killing existing process belonging to user ${username}`);
+        if (e.statusCode && e.message) {
+            throw e;
+        } else {
+            throw {statusCode: 500, message: "Problem starting process for user ${username}"};
+        }
     }
 }
 
@@ -170,10 +186,13 @@ export const createUpgradeHandler = (server: httpProxy) => async (req: IncomingM
         if (!username) {
             return socket.end();
         }
-        const existingProcess = processMap.get(username);
+        let existingProcess = processMap.get(username);
 
         if (!existingProcess?.process || existingProcess.process.signalCode) {
-            return socket.end();
+            // Attempt to start new process
+            existingProcess?.process?.removeAllListeners();
+            await startServer(username);
+            existingProcess = processMap.get(username);
         }
 
         if (existingProcess && !existingProcess.process.signalCode) {

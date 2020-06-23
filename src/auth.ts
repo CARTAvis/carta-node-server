@@ -305,6 +305,17 @@ if (config.authProviders.ldap) {
     };
 }
 
+function logoutHandler(req: express.Request, res: express.Response) {
+    res.cookie("Refresh-Token", "", {
+        path: "/api/auth/refresh",
+        maxAge: 0,
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict"
+    });
+    return res.json({success: true});
+}
+
 function generateLocalRefreshHandler(authConf: { issuer: string, keyAlgorithm: jwt.Algorithm, privateKeyLocation: string, accessTokenAge: string }) {
     const privateKey = fs.readFileSync(authConf.privateKeyLocation);
 
@@ -353,5 +364,6 @@ function handleCheckAuth(req: AuthenticatedRequest, res: express.Response) {
 
 export const authRouter = express.Router();
 authRouter.post("/login", noCache, loginHandler);
+authRouter.post("/logout", noCache, logoutHandler);
 authRouter.post("/refresh", noCache, refreshHandler);
 authRouter.get("/status", authGuard, noCache, handleCheckAuth);

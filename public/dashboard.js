@@ -237,6 +237,8 @@ handleLogout = async () => {
     clearInterval(serverCheckHandle);
     if (authenticationType === "google") {
         await handleGoogleLogout();
+    } else {
+        await handleLocalLogout();
     }
     if (serverRunning) {
         await handleServerStop();
@@ -276,6 +278,10 @@ handleGoogleLogout = async () => {
         notyf.error("Error signing out of Google");
         console.log(err);
     }
+}
+
+handleLocalLogout = async () => {
+    await apiCall("auth/logout", undefined, "post", false);
 }
 
 refreshGoogleToken = async () => {

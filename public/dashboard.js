@@ -137,9 +137,7 @@ updateRedirectURL = (hasServer) => {
     if (hasServer) {
         setButtonDisabled("start", true);
         setButtonDisabled("stop", false);
-        let redirectUrl = `${window.location.href}/frontend`;
-        const title = `CARTA server running`;
-        showMessage(title.link(redirectUrl), false, "carta-status");
+        showMessage("CARTA server running", false, "carta-status");
     } else {
         setButtonDisabled("stop", true);
         setButtonDisabled("start", false);
@@ -248,6 +246,10 @@ handleLogout = async () => {
     showLoginForm(true);
     localStorage.removeItem("authenticationType");
     clearToken();
+}
+
+handleOpenCarta = () => {
+    window.open(`${window.location.href}/frontend`, "_self");
 }
 
 initGoogleAuth = () => {
@@ -359,5 +361,6 @@ window.onload = async () => {
     document.getElementById("login").onclick = handleLogin;
     document.getElementById("start").onclick = handleServerStart;
     document.getElementById("stop").onclick = handleServerStop;
+    document.getElementById("open").onclick = handleOpenCarta;
     document.getElementById("logout").onclick = handleLogout;
 }

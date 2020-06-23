@@ -246,11 +246,8 @@ handleLogout = async () => {
     showMessage();
     showCartaForm(false);
     showLoginForm(true);
-    // Remove cookie
     localStorage.removeItem("authenticationType");
     clearToken();
-    // TODO: remove refresh cookie
-    document.cookie = "CARTA-Authorization=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 }
 
 initGoogleAuth = () => {

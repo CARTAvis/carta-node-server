@@ -53,9 +53,13 @@ module.exports = {
     // Range of ports to user for backend processes. Effectively limits the number of simultaneous users
     backendPorts: {min: 3002, max: 3500},
     processCommand: "/path/to/carta/backend",
-    // The <username> placeholder will be replaced with the username
-    rootFolderTemplate: "/path/to/user/root/<username>",
-    baseFolderTemplate: "/path/to/user/base/<username>",
+    // The {username} placeholder will be replaced with the username
+    rootFolderTemplate: "/path/to/user/root/{username}",
+    baseFolderTemplate: "/path/to/user/base/{username}",
+    // {pid} will be replaced by the started process ID
+    // {datetime} will be replaced by date and time formatted as "YYYYMMDD.h_mm_ss"
+    // Note: if you use /var/log/carta for log files, make sure the user running the server has the appropriate permissions
+    logFileTemplate: "/var/log/carta/{username}_{datetime}_{pid}.log",
     // Additional arguments to be passed to the backend process, defined as an array of strings
     additionalArgs: ["-threads", "4", "-omp_threads", "4"],
     killCommand: "/path/to/carta/kill/script",

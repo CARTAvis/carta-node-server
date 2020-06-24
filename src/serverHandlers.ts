@@ -1,8 +1,9 @@
 import * as express from "express";
 import * as httpProxy from "http-proxy";
 import * as url from "url";
+import * as fs from "fs";
+import * as moment from "moment";
 import * as querystring from "querystring";
-
 import {ChildProcess, spawn, spawnSync} from "child_process";
 import {delay, noCache} from "./util";
 import {AuthenticatedRequest, authGuard, getUser, verifyToken} from "./auth";
@@ -89,7 +90,8 @@ async function handleStartServer(req: AuthenticatedRequest, res: express.Respons
 }
 
 async function startServer(username: string) {
-    // Spawn a new process
+    let logStream: fs.WriteStream | undefined;
+
     try {
         const port = nextAvailablePort();
         if (port < 0) {
@@ -100,8 +102,8 @@ async function startServer(username: string) {
             "-u", `${username}`,
             config.processCommand,
             "-port", `${port}`,
-            "-root", config.rootFolderTemplate.replace("<username>", username),
-            "-base", config.baseFolderTemplate.replace("<username>", username),
+            "-root", config.rootFolderTemplate.replace("{username}", username),
+            "-base", config.baseFolderTemplate.replace("{username}", username),
         ];
 
         if (config.additionalArgs) {
@@ -109,10 +111,25 @@ async function startServer(username: string) {
         }
 
         const child = spawn("sudo", args);
-        child.stdout.on("data", data => console.log(data.toString()));
+        let logLocation: string;
+
+        if (config.logFileTemplate) {
+            logLocation = config.logFileTemplate
+                .replace("{username}", username)
+                .replace("{pid}", child.pid.toString())
+                .replace("{datetime}", moment().format("YYYYMMDD.h_mm_ss"));
+
+            logStream = fs.createWriteStream(logLocation, {flags: "a"});
+            child.stdout.pipe(logStream);
+            child.stderr.pipe(logStream);
+        } else {
+            logLocation = "stdout";
+        }
+
         child.on("exit", code => {
             console.log(`Process ${child.pid} exited with code ${code} and signal ${child.signalCode}`);
             processMap.delete(username);
+            logStream?.close();
         });
 
         // Check for early exit of backend process
@@ -120,16 +137,17 @@ async function startServer(username: string) {
         if (child.exitCode || child.signalCode) {
             throw {statusCode: 500, message: `Problem starting process for user ${username}`};
         } else {
-            console.log(`Started process with PID ${child.pid} for user ${username} on port ${port}`);
+            console.log(`Started process with PID ${child.pid} for user ${username} on port ${port}. Outputting to ${logLocation}`);
             processMap.set(username, {port, process: child});
             return;
         }
     } catch (e) {
-        console.log(`Error killing existing process belonging to user ${username}`);
+        console.log(`Problem starting process for user ${username}`);
+        logStream?.close();
         if (e.statusCode && e.message) {
             throw e;
         } else {
-            throw {statusCode: 500, message: "Problem starting process for user ${username}"};
+            throw {statusCode: 500, message: `Problem starting process for user ${username}`};
         }
     }
 }

@@ -135,12 +135,10 @@ updateServerStatus = async () => {
 
 updateRedirectURL = (hasServer) => {
     if (hasServer) {
-        setButtonDisabled("start", true);
         setButtonDisabled("stop", false);
         showMessage("CARTA server running", false, "carta-status");
     } else {
         setButtonDisabled("stop", true);
-        setButtonDisabled("start", false);
         showMessage(`Logged in as ${authenticatedUser}`, false, "carta-status");
     }
 }
@@ -184,31 +182,7 @@ onLoginSucceeded = async (username, type) => {
     await updateServerStatus();
 }
 
-handleServerStart = async () => {
-    setButtonDisabled("start", true);
-    setButtonDisabled("stop", true);
-    try {
-        try {
-            const res = await apiCall("server/start", undefined, "post", true);
-            const body = await res.json();
-            if (!body.success) {
-                notyf.error("Failed to start CARTA server");
-                console.log(body.message);
-            } else {
-                notyf.success("Started CARTA server successfully");
-            }
-        } catch (e) {
-            console.log(e);
-        }
-    } catch (e) {
-        notyf.error("Failed to start CARTA server");
-        console.log(e);
-    }
-    await updateServerStatus();
-}
-
 handleServerStop = async () => {
-    setButtonDisabled("start", true);
     setButtonDisabled("stop", true);
     try {
         try {
@@ -359,7 +333,6 @@ window.onload = async () => {
 
     // Wire up buttons
     document.getElementById("login").onclick = handleLogin;
-    document.getElementById("start").onclick = handleServerStart;
     document.getElementById("stop").onclick = handleServerStop;
     document.getElementById("open").onclick = handleOpenCarta;
     document.getElementById("logout").onclick = handleLogout;

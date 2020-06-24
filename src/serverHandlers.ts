@@ -110,8 +110,8 @@ async function startServer(username: string) {
 
         const child = spawn("sudo", args);
         child.stdout.on("data", data => console.log(data.toString()));
-        child.on("close", code => {
-            console.log(`Process ${child.pid} closed with code ${code} and signal ${child.signalCode}`);
+        child.on("exit", code => {
+            console.log(`Process ${child.pid} exited with code ${code} and signal ${child.signalCode}`);
             processMap.delete(username);
         });
 

@@ -40,6 +40,18 @@ const backendProxy = httpProxy.createServer({ws: true});
 
 // Handle WS connections
 expressServer.on("upgrade", createUpgradeHandler(backendProxy));
+
+// Handle WS disconnects
+backendProxy.on("error", (err: any)=> {
+    // Ignore connection resets
+    if (err?.code === "ECONNRESET") {
+        return;
+    } else {
+        console.log("Proxy error:");
+        console.log(err);
+    }
+});
+
 const config = require("../config/config.ts");
 
 async function init() {

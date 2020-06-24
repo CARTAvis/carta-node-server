@@ -9,7 +9,7 @@ COMMAND_OF_PID=`ps -p $CHILD_PID -o comm=`
 
 # Only allow processes with the same command name to be killed
 if [ "$COMMAND_OF_PID" == "$COMMAND_TO_MATCH" ]; then
-    kill $CHILD_PID
+    kill -9 $CHILD_PID
     exit $?
 else
     echo "$COMMAND_OF_PID does not match $COMMAND_TO_MATCH"

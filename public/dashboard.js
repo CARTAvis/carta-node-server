@@ -9,7 +9,18 @@ const notyf = new Notyf({
         background: "#4c84af",
     }]
 });
-const apiBase = `${window.location.href}api`;
+const strippedPath = window.location.href.replace(window.location.search, "");
+const apiBase = `${strippedPath}api`;
+const urlParams = new URLSearchParams(window.location.search);
+let redirectUrl;
+if (urlParams.has("redirectUrl")) {
+    redirectUrl = atob(urlParams.get("redirectUrl"));
+} else {
+    redirectUrl = `${strippedPath}frontend`;
+}
+
+const isPopup = urlParams.get("popup");
+
 let serverCheckHandle;
 
 let authenticationType = "";
@@ -223,7 +234,7 @@ handleLogout = async () => {
 }
 
 handleOpenCarta = () => {
-    window.open(`${window.location.href}/frontend`, "_self");
+    window.open(redirectUrl, "_self");
 }
 
 initGoogleAuth = () => {
@@ -313,6 +324,10 @@ showLoginForm = (show) => {
 }
 
 window.onload = async () => {
+    // Hide open button if using popup
+    if (isPopup) {
+        document.getElementById("open").style.display = "none";
+    }
     const existingLoginType = localStorage.getItem("authenticationType");
     if (existingLoginType === "local") {
         try {

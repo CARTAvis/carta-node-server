@@ -61,7 +61,7 @@ module.exports = {
     // Note: if you use /var/log/carta for log files, make sure the user running the server has the appropriate permissions
     logFileTemplate: "/var/log/carta/{username}_{datetime}_{pid}.log",
     // Additional arguments to be passed to the backend process, defined as an array of strings
-    additionalArgs: ["-threads", "4", "-omp_threads", "4"],
+	additionalArgs: ["-threads", "4", "-omp_threads", "4", "-init_exit_after", "30", "-exit_after", "0"],
     killCommand: "/path/to/carta/kill/script",
     // How long to wait before checking whether started process is still running and sending res
     startDelay: 100

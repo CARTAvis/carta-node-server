@@ -13,8 +13,10 @@ const strippedPath = window.location.href.replace(window.location.search, "");
 const apiBase = `${strippedPath}api`;
 const urlParams = new URLSearchParams(window.location.search);
 let redirectUrl;
+let autoRedirect = false;
 if (urlParams.has("redirectUrl")) {
     redirectUrl = atob(urlParams.get("redirectUrl"));
+    autoRedirect = true;
 } else {
     redirectUrl = `${strippedPath}frontend`;
 }
@@ -186,11 +188,15 @@ onLoginSucceeded = async (username, type) => {
     authenticationType = type;
     localStorage.setItem("authenticationType", type);
     notyf.success(`Logged in as ${authenticatedUser}`);
-    showLoginForm(false);
-    showCartaForm(true);
-    clearInterval(serverCheckHandle);
-    serverCheckHandle = setInterval(updateServerStatus, 5000);
-    await updateServerStatus();
+    if (autoRedirect) {
+        handleOpenCarta();
+    } else {
+        showLoginForm(false);
+        showCartaForm(true);
+        clearInterval(serverCheckHandle);
+        serverCheckHandle = setInterval(updateServerStatus, 5000);
+        await updateServerStatus();
+    }
 }
 
 handleServerStop = async () => {

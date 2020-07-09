@@ -94,8 +94,11 @@ if (config.authProviders.google) {
         });
         const payload = ticket.getPayload();
 
-        // check that unique ID exists and email is verified
-        if (!payload?.sub || !payload?.email_verified) {
+        // Use either the email or the unique sub ID as the username
+        const username = authConf.useEmailAsId ? payload?.email : payload?.sub;
+
+        // check that username exists and email is verified
+        if (!username || !payload?.email_verified) {
             console.log("Google auth rejected due to lack of unique ID or email verification");
             return undefined;
         }
@@ -106,8 +109,7 @@ if (config.authProviders.google) {
             return undefined;
         }
 
-        // Google recommends returning the "sub" field as the unique ID
-        return {...payload, username: payload.sub};
+        return {...payload, username};
     };
 
     for (const iss of validIssuers) {

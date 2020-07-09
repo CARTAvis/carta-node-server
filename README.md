@@ -1,4 +1,6 @@
-# Cookies and JWT
+# CARTA Server (NodeJS version)
+
+## Work-in-progress, documentation still under construction
 
 Basic example of using JWTs and returning them via cookies. 
 

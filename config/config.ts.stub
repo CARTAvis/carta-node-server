@@ -31,6 +31,8 @@ module.exports = {
             clientId: "<CLIENTID>.apps.googleusercontent.com",
             // List of valid domains to accept. If this is empty or undefined, all domains are accepted. Domain specified by "hd" field
             validDomains: ["domain1"],
+            //  Set this to true if you want to lookup users by email address instead of sub
+			useEmailAsId: false,
             // User lookup table as text file in format <unique user ID> <system user>. If no user lookup is needed, leave this blank
             userLookupTable: "/path/to/user/lookup/table"
         },

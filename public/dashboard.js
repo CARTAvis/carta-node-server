@@ -353,7 +353,11 @@ window.onload = async () => {
     }
 
     // Wire up buttons
-    document.getElementById("login").onclick = handleLogin;
+    const loginButton = document.getElementById("login");
+    if (loginButton) {
+        loginButton.onclick = handleLogin;
+    }
+
     document.getElementById("stop").onclick = handleServerStop;
     document.getElementById("open").onclick = handleOpenCarta;
     document.getElementById("logout").onclick = handleLogout;

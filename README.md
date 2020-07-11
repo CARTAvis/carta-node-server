@@ -2,6 +2,36 @@
 
 ## Work-in-progress, documentation still under construction
 
+## Introduction
+Provides a simple dashboard for authenticating users, starting up a CARTA backend process as the authenticated user, serving static frontend code to clients and a dynamic proxy to redirect authenticated client connections to the appropriate backend process.
+
+## Dependencies
+In order to serve CARTA sessions, the CARTA backend must be executable by the server. This can be in the form of a compiled executable or a container.
+The `dev` branch of [carta-backend](https://github.com/CARTAvis/carta-backend) should be used. 
+The CARTA frontend must be built and either copied or symlinked inside this repo's `public` folder as `frontend`. The `angus/database_service` branch should be used, and some configuration via an `.env.local` file is required (discussed below).
+
+By default, the server runs on port 8000. It should be run behind a proxy, so it can be accessed via HTTP and HTTPS. If using nginx, the following configuration example can be used as a starting point to achieve this:
+```nginx
+server {
+    listen 80;
+    server_name example.com;
+    location / {
+        proxy_set_header   X-Forwarded-For $remote_addr;
+        proxy_set_header   Host $http_host;
+        proxy_pass         "http://127.0.0.1:8000";
+    }
+}
+```
+(We strongly suggest serving over HTTPS)
+
+MongoDB is required for storing user preferences, layouts and (in the near future) server metrics.
+All node dependencies should be installed by `npm install`.
+
+## Authentication support
+`carta-node-server` supports three modes for authentication. All three modes use refresh and access tokens stored in [JWT](https://jwt.io/) format, based on the [OAuth2 Authorization flow](https://tools.ietf.org/html/rfc6749#section-1.3.1). The modes are:
+- **LDAP-based authentication**: An existing LDAP server is used for user authentication. After the user's username and password configuration are validated by the LDAP server, `carta-node-server` returns a refresh token, signed with a private key, that can be exchanged by the CARTA dashboard frontend client, or the 
+## Configuration
+## Installation
 Basic example of using JWTs and returning them via cookies. 
 
 To test: 

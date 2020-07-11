@@ -14,11 +14,10 @@ const apiBase = `${strippedPath}api`;
 const urlParams = new URLSearchParams(window.location.search);
 let redirectUrl;
 let autoRedirect = false;
-if (urlParams.has("redirectUrl")) {
-    redirectUrl = atob(urlParams.get("redirectUrl"));
+redirectUrl = `${strippedPath}frontend`;
+if (urlParams.has("redirectParams")) {
+    redirectUrl+= atob(urlParams.get("redirectParams"));
     autoRedirect = true;
-} else {
-    redirectUrl = `${strippedPath}frontend`;
 }
 
 const isPopup = urlParams.get("popup");

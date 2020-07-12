@@ -252,7 +252,11 @@ if (config.authProviders.ldap) {
                         expiresIn: authConf.accessTokenAge
                     });
 
-                    res.json({access_token, token_type: "bearer"});
+                    res.json({
+                        access_token,
+                        token_type: "bearer",
+                        expires_in: ms(authConf.accessTokenAge as string) / 1000
+                    });
                 } catch (e) {
                     throw {statusCode: 403, message: "User does not exist"};
                 }
@@ -297,7 +301,11 @@ if (config.authProviders.ldap) {
                 expiresIn: authConf.accessTokenAge
             });
 
-            res.json({access_token, token_type: "bearer", expires_in: ms(authConf.accessTokenAge as string)});
+            res.json({
+                access_token,
+                token_type: "bearer",
+                expires_in: ms(authConf.accessTokenAge as string) / 1000
+            });
         } catch (e) {
             throw {statusCode: 403, message: "User does not exist"};
         }
@@ -337,7 +345,12 @@ function generateLocalRefreshHandler(authConf: { issuer: string, keyAlgorithm: j
                         expiresIn: authConf.accessTokenAge
                     });
                     console.log(`Refreshed access token for user ${refreshToken.username} with uid ${uid}`);
-                    res.json({access_token, token_type: "bearer", username: refreshToken.username, expires_in: ms(authConf.accessTokenAge as string)});
+                    res.json({
+                        access_token,
+                        token_type: "bearer",
+                        username: refreshToken.username,
+                        expires_in: ms(authConf.accessTokenAge as string) / 1000
+                    });
                 }
             } catch (err) {
                 next({statusCode: 400, message: "Invalid refresh token"});

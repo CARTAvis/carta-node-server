@@ -27,6 +27,7 @@ let serverCheckHandle;
 let authenticationType = "";
 let authenticatedUser = "";
 let token = "";
+let tokenLifetime = -1;
 let tokenExpiryTime = -1;
 let serverRunning = false;
 
@@ -61,38 +62,22 @@ apiCall = async (callName, jsonBody, method, authRequired) => {
     return fetch(`${apiBase}/${callName}`, options);
 }
 
-function decodeJWT(tokenString) {
-    try {
-        const [header, payload] = tokenString.split(".");
-        return {
-            header: JSON.parse(atob(header)),
-            payload: JSON.parse(atob(payload))
-        };
-    } catch (e) {
-        return undefined;
-    }
-}
-
-function setToken(t) {
-    token = t;
-    const decodedToken = decodeJWT(t);
-    if (decodedToken && decodedToken.payload && decodedToken.payload.exp) {
-        tokenExpiryTime = decodedToken.payload.exp;
-        const currentTime = Date.now() / 1000;
-        const dt = tokenExpiryTime - currentTime;
-        if (isFinite(dt) && dt > 0) {
-            console.log(`Token updated and valid for ${dt.toFixed()} seconds`);
-        } else {
-            clearToken();
-        }
+function setToken(tokenString, expiresIn) {
+    token = tokenString;
+    tokenLifetime = expiresIn;
+    if (isFinite(tokenLifetime) && tokenLifetime > 0) {
+        console.log(`Token updated and valid for ${tokenLifetime.toFixed()} seconds`);
+        const currentTimeSeconds = Date.now() / 1000;
+        tokenExpiryTime = currentTimeSeconds + tokenLifetime;
     } else {
-        tokenExpiryTime = -1;
+        clearToken();
     }
 }
 
 function clearToken() {
+    console.log("Clearing token");
     token = undefined;
-    tokenExpiryTime = -1;
+    tokenLifetime = -1;
 }
 
 showMessage = (message, error, elementId) => {
@@ -165,7 +150,7 @@ handleLogin = async () => {
         const res = await apiCall("auth/login", body, "post");
         if (res.ok) {
             const body = await res.json();
-            setToken(body.access_token);
+            setToken(body.access_token, body.expires_in || Number.MAX_VALUE);
 
             await onLoginSucceeded(username, "local");
         } else {
@@ -251,7 +236,8 @@ initGoogleAuth = () => {
 
 onSignIn = (googleUser) => {
     const profile = googleUser.getBasicProfile();
-    setToken(googleUser.getAuthResponse().id_token);
+    const authResponse = googleUser.getAuthResponse();
+    setToken(authResponse.id_token, authResponse.expires_in);
     onLoginSucceeded(profile.getEmail(), "google");
 }
 
@@ -280,9 +266,9 @@ refreshGoogleToken = async () => {
             if (authInstance && authInstance.currentUser) {
                 const user = authInstance.currentUser.get();
                 if (user) {
-                    const res = await user.reloadAuthResponse();
-                    if (res && res.id_token) {
-                        setToken(res.id_token);
+                    const authResponse = await user.reloadAuthResponse();
+                    if (authResponse && authResponse.id_token) {
+                        setToken(authResponse.id_token, authResponse.expires_in);
                     }
                 }
             }
@@ -299,7 +285,7 @@ refreshLocalToken = async () => {
         if (res.ok) {
             const body = await res.json();
             if (body.access_token) {
-                setToken(body.access_token);
+                setToken(body.access_token, body.expires_in || Number.MAX_VALUE);
             }
         }
     } catch (err) {
@@ -340,7 +326,7 @@ window.onload = async () => {
             if (res.ok) {
                 const body = await res.json();
                 if (body.access_token) {
-                    setToken(body.access_token);
+                    setToken(body.access_token, body.expires_in || Number.MAX_VALUE);
                     await onLoginSucceeded(body.username, "local");
                 } else {
                     await handleLogout();

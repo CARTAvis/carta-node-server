@@ -42,7 +42,7 @@ module.exports = {
             keyAlgorithm: "RS256",
             // Unique field to be used as username
             uniqueField: "sub",
-            // User lookup table as text file in format <unique user ID> <system user>. If no user lookup is needed, leave this blank
+            // User lookup table as text file in format <authenticated username> <system user>. If no user lookup is needed, leave this blank
             userLookupTable: "/path/to/user/lookup/table"
         }
     },

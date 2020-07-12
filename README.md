@@ -3,18 +3,56 @@
 ## Work-in-progress, documentation still under construction
 
 ## Introduction
-Provides a simple dashboard for authenticating users, starting up a CARTA backend process as the authenticated user, serving static frontend code to clients and a dynamic proxy to redirect authenticated client connections to the appropriate backend process.
+Provides a simple dashboard for authenticating users, starting up a CARTA backend process as the authenticated user, serving static frontend code to clients and a dynamic proxy to redirect authenticated client connections to the appropriate backend process. Authentication can either be handled by the server itself, or by an external OAuth2-based authentication server.
 
 ## Dependencies
 In order to serve CARTA sessions, the CARTA backend must be executable by the server. This can be in the form of a compiled executable or a container.
 The `dev` branch of [carta-backend](https://github.com/CARTAvis/carta-backend) should be used. 
 The CARTA frontend must be built and either copied or symlinked inside this repo's `public` folder as `frontend`. The `angus/database_service` branch should be used, and some configuration via an `.env.local` file is required (discussed below).
 
-By default, the server runs on port 8000. It should be run behind a proxy, so it can be accessed via HTTP and HTTPS. If using nginx, the following configuration example can be used as a starting point to achieve this:
+By default, the server runs on port 8000. It should be run behind a proxy, so it can be accessed via HTTP and HTTPS. 
+
+MongoDB is required for storing user preferences, layouts and (in the near future) server metrics.
+A working NodeJS installation with NPM is required. All node dependencies should be installed by `npm install`.
+
+## Authentication support
+`carta-node-server` supports three modes for authentication. All three modes use refresh and access tokens stored in [JWT](https://jwt.io/) format, based on the [OAuth2 Authorization flow](https://tools.ietf.org/html/rfc6749#section-1.3.1). The modes are:
+- **LDAP-based authentication**: An existing LDAP server is used for user authentication. After the user's username and password configuration are validated by the LDAP server, `carta-node-server` returns a long-lived refresh token, signed with a private key, that can be exchanged by the CARTA dashboard, or the CARTA frontend client for a short-lived access token.
+- **Google authentication**: Google's authentication libraries are used for handling authentication. In order to use this, a new web application must be created in the [Google API console](https://console.developers.google.com/apis/credentials). The client ID provided by this application must be used in a number of places during the configuration.
+* **External authentication**: Allows users to authenticate with some external OAuth2-based authentication system. This requires a fair amount of configuration, and has not been well-tested. It is assumed that the refresh token passed by the authentication system is stored as an `HttpOnly` cookie.
+
+Placeholder authentication (accepting any username and password) is also included, but should not be used on anything other than test deployments.
+
+## Configuration
+Both the server and the frontend need to be configured correctly according to the authentication approach used.
+
+### Frontend Configuration
+Frontend configuration should be provided by an `.env.local` file in the frontend repository root directory. If using google authentication, the following configuration options are required:
+```dotenv
+REACT_APP_ACCESS_DASHBOARD_ADDRESS=https://my-carta-server.com
+REACT_APP_API_ADDRESS=https://my-carta-server.com/api
+REACT_APP_GOOGLE_CLIENT_ID=<my_id>.apps.googleusercontent.com
+```
+If using LDAP-based or external authentication, the addresses of the refresh endpoint and (optionally) logout endpoint must be provided:
+```dotenv
+REACT_APP_ACCESS_DASHBOARD_ADDRESS=https://my-carta-server.com
+REACT_APP_API_ADDRESS=https://my-carta-server.com/api
+REACT_APP_ACCESS_TOKEN_ADDRESS=https://my-carta-server.com/api/auth/refresh
+REACT_APP_ACCESS_LOGOUT_ADDRESS=https://my-carta-server.com/api/auth/logout
+```
+
+### Server Configuration
+Server configuration is handled by a configuration file `config/config.ts`. Detailed comments on each of the server options are given in the [example config](config/config.ts.stub). For external authentication systems, you may need to translate a unique ID (such as email or username) from the authenticated user information to the system user. This can be performed by providing a [user lookup table](config/usertable.txt.stub), which is watched by the server and reloaded whenever it is updated.
+
+### System Configuration
+The CARTA server will attempt to start up a `carta_backend` process as the authenticated user. In order to do this, the user under which the server is running (assumed to be `carta`) needs to be given permission to start the backend process as any authorised user, and to stop any `carta_backend` processes on the system. Both are handled via running commands via `sudo -u <user>`. Rather than allowing the `carta` user to kill all processes beloning to authorised users, a [kill script](scripts/kill_script.sh) is used, which is only able to kill processes matching the name `carta_backend`. In order to provide the `carta` user with these privledges, modifications to the [sudoers configuration](https://www.sudo.ws/man/1.9.0/sudoers.man.html) must be made. An [example sudoers config](config/example_sudoers_conf.stub) is given. This is designed to allow the `carta` user to only run `carta_backend` as users belonging to a specific group (assumed to be `carta-users`), in order to prevent access to unauthorized accounts.
+
+If using [nginx](https://www.nginx.com/) as a proxy, the following configuration example can be used as a starting point to redirect traffic from port 8000 to port 80:
+
 ```nginx
 server {
     listen 80;
-    server_name example.com;
+    server_name my-carta-server.com;
     location / {
         proxy_set_header   X-Forwarded-For $remote_addr;
         proxy_set_header   Host $http_host;
@@ -22,26 +60,40 @@ server {
     }
 }
 ```
-(We strongly suggest serving over HTTPS)
 
-MongoDB is required for storing user preferences, layouts and (in the near future) server metrics.
-All node dependencies should be installed by `npm install`.
+We strongly suggest serving over HTTPS and redirecting HTTP traffic to HTTPS, especially if handling authentication internally. In order to do this, nginx needs additional configuration and a certificate pair (assumed to be stored in `/etc/nginx/ssl` with the correct file permissions). As an example:
 
-## Authentication support
-`carta-node-server` supports three modes for authentication. All three modes use refresh and access tokens stored in [JWT](https://jwt.io/) format, based on the [OAuth2 Authorization flow](https://tools.ietf.org/html/rfc6749#section-1.3.1). The modes are:
-- **LDAP-based authentication**: An existing LDAP server is used for user authentication. After the user's username and password configuration are validated by the LDAP server, `carta-node-server` returns a refresh token, signed with a private key, that can be exchanged by the CARTA dashboard frontend client, or the 
-## Configuration
-## Installation
-Basic example of using JWTs and returning them via cookies. 
+```nginx
+server {
+    listen 443 ssl;
+    ssl on;
+    server_name my-carta-server.com;
+    ssl_certificate /etc/nginx/ssl/cert.pem; 
+    ssl_certificate_key /etc/nginx/ssl/key.pem;
+}
 
-To test: 
-1. Run `npm install`
-2. Copy `config.ts.stub` to `config.ts` and edit if neccessary
-3. Run using `npm start`
-4. Send a `POST` to `http://localhost:8000/login` with username and password in a JSON body. If the username and password match the dummy values in `config.ts`, the server will respond with `{"success": true}`, and a JWT stored as a cookie.
-5. Send a `GET` to `http://localhost:8000/checkStatus`. The server will verify the JWT sent to it as a cookie, and return `{"success": true}` if it is valid.
-5. Send a `POST` to `http://localhost:8000/start`. The server will
-    * Verify the JWT sent to it as a cookie.
-    * Kill any existing process spawned for the given user.
-    * Attempt to start the process defined in `config.ts` as the user specified in the JWT
-    * Return `{"success": true}` if spawning succeeds.
+server {
+    server_name my-carta-server.com;    
+    if ($host = my-carta-server.com) {
+        return 301 https://$host$request_uri;
+    }
+    listen 80 ;
+    listen [::]:80 ;
+    return 404;
+}
+```
+
+Other HTTP servers, such as Apache, may also be used. Please ensure that they are set up to forward both standard HTTP requests and WebSocket traffic to the correct port.
+
+By default, the configuration attemps to write log files to the `/var/log/carta` directory. Please ensure this directory exists and the `carta` user has write permission.
+
+## Running the server
+- Build [carta-backend](https://github.com/CARTAvis/carta-backend) using the `dev` branch (or create the appropriate container)
+- Configure and build [carta-frontend](https://github.com/CARTAvis/carta-frontend) using the `angus/database_service` branch.
+- Edit the server configuration file
+- Perform system configuration
+
+After building the frontend and backend, and editing the server configuration, the server can be started by simply running `npm run start` to start the server. In order to keep the server running, a utility such as [forever](https://github.com/foreversd/forever) can be used to automatically restart it.
+
+## Getting help
+If there are issues with the server or documentation, please submit an issue in this repo. If you need assistance in configuration or deployment, please contact the [CARTA helpdesk](mailto:carta_helpdesk@asiaa.sinica.edu.tw).

@@ -1,6 +1,6 @@
 # CARTA Server (NodeJS version)
 
-## Work-in-progress, documentation still under construction
+#### Work-in-progress, documentation still under construction
 
 ## Introduction
 Provides a simple dashboard for authenticating users, starting up a CARTA backend process as the authenticated user, serving static frontend code to clients and a dynamic proxy to redirect authenticated client connections to the appropriate backend process. Authentication can either be handled by the server itself, or by an external OAuth2-based authentication server.

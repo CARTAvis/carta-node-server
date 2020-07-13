@@ -102,3 +102,9 @@ After building the frontend and backend, and editing the server configuration, t
 
 ## Getting help
 If there are issues with the server or documentation, please submit an issue in this repo. If you need assistance in configuration or deployment, please contact the [CARTA helpdesk](mailto:carta_helpdesk@asiaa.sinica.edu.tw).
+
+## TODO
+Still to be implemented:
+- Better error feedback
+- More flexibility with external auth
+- API endpoints for saving user layouts (not currently implemented)

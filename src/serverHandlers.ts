@@ -185,20 +185,24 @@ export const createUpgradeHandler = (server: httpProxy) => async (req: IncomingM
         }
         let parsedUrl = url.parse(req.url);
         if (!parsedUrl?.query) {
+            console.log(`Incoming Websocket upgrade request could not be parsed: ${req.url}`);
             return socket.end();
         }
         let queryParameters = querystring.parse(parsedUrl.query);
         const tokenString = queryParameters?.token;
         if (!tokenString || Array.isArray(tokenString)) {
+            console.log(`Incoming Websocket upgrade request is missing an authentication token`);
             return socket.end();
         }
 
         const token = await verifyToken(tokenString);
         if (!token || !token.username) {
+            console.log(`Incoming Websocket upgrade request has an invalid token`);
             return socket.end();
         }
         const username = getUser(token.username, token.iss);
         if (!username) {
+            console.log(`Could not find username ${token.username} in the user map`);
             return socket.end();
         }
         let existingProcess = processMap.get(username);
@@ -213,8 +217,13 @@ export const createUpgradeHandler = (server: httpProxy) => async (req: IncomingM
         if (existingProcess && !existingProcess.process.signalCode) {
             console.log(`Redirecting to backend process for ${username} (port ${existingProcess.port})`);
             return server.ws(req, socket, head, {target: {host: "localhost", port: existingProcess.port}});
+        } else {
+            console.log(`Backend process could not be started`);
+            return socket.end();
         }
     } catch (err) {
+        console.log(`Error upgrading socket`);
+        console.log(err);
         return socket.end();
     }
 }

@@ -200,6 +200,10 @@ export const createUpgradeHandler = (server: httpProxy) => async (req: IncomingM
             console.log(`Incoming Websocket upgrade request has an invalid token`);
             return socket.end();
         }
+
+        const remoteAddress = req.headers?.["x-forwarded-for"] || req.connection?.remoteAddress;
+        console.log(`WS upgrade request from ${remoteAddress} for authenticated user ${token.username}`);
+
         const username = getUser(token.username, token.iss);
         if (!username) {
             console.log(`Could not find username ${token.username} in the user map`);

@@ -70,6 +70,11 @@ server {
     server_name my-carta-server.com;
     ssl_certificate /etc/nginx/ssl/cert.pem; 
     ssl_certificate_key /etc/nginx/ssl/key.pem;
+    location / {
+        proxy_set_header   X-Forwarded-For $remote_addr;
+        proxy_set_header   Host $http_host;
+        proxy_pass         "http://127.0.0.1:8000";
+    }
 }
 
 server {

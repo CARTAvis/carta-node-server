@@ -8,7 +8,7 @@ Provides a simple dashboard for authenticating users, starting up a CARTA backen
 ## Dependencies
 In order to serve CARTA sessions, the CARTA backend must be executable by the server. This can be in the form of a compiled executable or a container.
 The `dev` branch of [carta-backend](https://github.com/CARTAvis/carta-backend) should be used. 
-The CARTA frontend must be built and either copied or symlinked inside this repo's `public` folder as `frontend`. The `angus/database_service` branch should be used, and some configuration via an `.env.local` file is required (discussed below).
+The CARTA frontend must be built and either copied or symlinked inside this repo's `public` folder as `frontend`. The `angus/database_service` branch should be used.
 
 By default, the server runs on port 8000. It should be run behind a proxy, so it can be accessed via HTTP and HTTPS. 
 
@@ -33,22 +33,34 @@ openssl rsa -in carta_rsa.key -pubout -outform PEM -out carta_rsa.key.pub
 Both the server and the frontend need to be configured correctly according to the authentication approach used.
 
 ### Frontend Configuration
-Frontend configuration should be provided by an `.env.local` file in the frontend repository root directory. If using google authentication, the following configuration options are required:
-```dotenv
-REACT_APP_ACCESS_DASHBOARD_ADDRESS=https://my-carta-server.com
-REACT_APP_API_ADDRESS=https://my-carta-server.com/api
-REACT_APP_GOOGLE_CLIENT_ID=<my_id>.apps.googleusercontent.com
+Frontend configuration should be provided by modifying the [runtimeConfig.js](config/runtimeConfig.js.stub) after the built frontend has been placed in the `public/frontend` directory. If using google authentication, the following configuration options are required:
+```javascript
+window["cartaRuntimeConfig"] = {
+    // Common properties
+    dashboardAddress: "https://my-carta-server.com",
+    apiAddress: "https://my-carta-server.com/api",
+
+    // Required for Google auth
+    googleClientId: "<clientID>.apps.googleusercontent.com",
+}
 ```
 If using LDAP-based or external authentication, the addresses of the refresh endpoint and (optionally) logout endpoint must be provided:
-```dotenv
-REACT_APP_ACCESS_DASHBOARD_ADDRESS=https://my-carta-server.com
-REACT_APP_API_ADDRESS=https://my-carta-server.com/api
-REACT_APP_ACCESS_TOKEN_ADDRESS=https://my-carta-server.com/api/auth/refresh
-REACT_APP_ACCESS_LOGOUT_ADDRESS=https://my-carta-server.com/api/auth/logout
+```javascript
+window["cartaRuntimeConfig"] = {
+    // Common properties
+    dashboardAddress: "https://my-carta-server.com",
+    apiAddress: "https://my-carta-server.com/api",
+
+    // Required for LDAP and external auth
+    tokenRefreshAddress: "https://my-carta-server.com/api/auth/refresh",
+    logoutAddress: "https://my-carta-server.com/api/auth/logout"
+}
 ```
 
 ### Server Configuration
 Server configuration is handled by a configuration file `config/config.ts`. Detailed comments on each of the server options are given in the [example config](config/config.ts.stub). For external authentication systems, you may need to translate a unique ID (such as email or username) from the authenticated user information to the system user. This can be performed by providing a [user lookup table](config/usertable.txt.stub), which is watched by the server and reloaded whenever it is updated.
+
+If using Google authentication, there are some lines that need to be uncommented in the `<head>` section of the [public/index.html](public/index.html) file.
 
 ### System Configuration
 The CARTA server will attempt to start up a `carta_backend` process as the authenticated user. In order to do this, the user under which the server is running (assumed to be `carta`) needs to be given permission to start the backend process as any authorised user, and to stop any `carta_backend` processes on the system. Both are handled via running commands via `sudo -u <user>`. Rather than allowing the `carta` user to kill all processes beloning to authorised users, a [kill script](scripts/kill_script.sh) is used, which is only able to kill processes matching the name `carta_backend`. In order to provide the `carta` user with these privledges, modifications to the [sudoers configuration](https://www.sudo.ws/man/1.9.0/sudoers.man.html) must be made. An [example sudoers config](config/example_sudoers_conf.stub) is given. This is designed to allow the `carta` user to only run `carta_backend` as users belonging to a specific group (assumed to be `carta-users`), in order to prevent access to unauthorized accounts. **Please only edit your sudoers configuration with `visudo` or equivalent.**
@@ -104,7 +116,7 @@ server {
 
 Other HTTP servers, such as Apache, may also be used. Please ensure that they are set up to forward both standard HTTP requests and WebSocket traffic to the correct port.
 
-By default, the configuration attemps to write log files to the `/var/log/carta` directory. Please ensure this directory exists and the `carta` user has write permission.
+By default, the configuration attempts to write log files to the `/var/log/carta` directory. Please ensure this directory exists and the `carta` user has write permission.
 
 ## Running the server
 - Build [carta-backend](https://github.com/CARTAvis/carta-backend) using the `dev` branch (or create the appropriate container)

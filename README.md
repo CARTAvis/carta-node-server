@@ -23,6 +23,12 @@ A working NodeJS installation with NPM is required. All node dependencies should
 
 Placeholder authentication (accepting any username and password) is also included, but should not be used on anything other than test deployments.
 
+A private/public key pair in PEM format can be generated using `ssh-keygen` or `openssl`:
+```shell script
+ssh-keygen -t rsa -b 4096 -m PEM -f carta_rsa.key
+openssl rsa -in carta_rsa.key -pubout -outform PEM -out carta_rsa.key.pub
+```
+
 ## Configuration
 Both the server and the frontend need to be configured correctly according to the authentication approach used.
 

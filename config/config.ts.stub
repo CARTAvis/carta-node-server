@@ -1,15 +1,6 @@
 module.exports = {
-    // One or more authProvider must be defined
+    // One authProvider must be defined
     authProviders: {
-    	// Dummy authentication, used for testing ONLY! Will accept any username/password combo if user exists
-    	dummy: {
-                publicKeyLocation: "/path/to/your/public/key_in_pem_format",
-                privateKeyLocation: "/path/to/your/private/key_in_pem_format",
-                keyAlgorithm: "RS256",
-                issuer: "some_identifier",
-                refreshTokenAge: "1w",
-				accessTokenAge: "15m"
-		},
         // LDAP-based username/password authentication and token signing
         ldap: {
             publicKeyLocation: "/path/to/your/public/key_in_pem_format",
@@ -44,14 +35,24 @@ module.exports = {
             uniqueField: "sub",
             // User lookup table as text file in format <authenticated username> <system user>. If no user lookup is needed, leave this blank
             userLookupTable: "/path/to/user/lookup/table"
+            // Routes for refreshing access tokens and logging out
+            tokenRefreshAddress: "https://my-auth-server.com/refresh/route",
+            logoutAddress: "https://my-auth-server.com/api/auth/logout"
         }
     },
     database: {
         url: "mongodb://localhost:27017",
         databaseName: "CARTA"
     },
+
     // Port to listen on. It is advised to listen on a port other than 80 or 443, behind an SSL proxy
     serverPort: 8000,
+    // Public-facing server address
+    serverAddress: "https://my-carta-server.com",
+    // If you need to optionally specify a different API or dashboard address
+    // dashboardAddress: "https://my-other-server.com/dashboard",
+	// apiAddress: "https://my-carta-server.com/api"
+
     // Range of ports to user for backend processes. Effectively limits the number of simultaneous users
     backendPorts: {min: 3002, max: 3500},
     processCommand: "/path/to/carta/backend",

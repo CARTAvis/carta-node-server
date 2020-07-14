@@ -79,10 +79,6 @@ if (config.authProviders.ldap) {
     generateLocalVerifier(config.authProviders.ldap);
 }
 
-if (config.authProviders.dummy) {
-    generateLocalVerifier(config.authProviders.dummy);
-}
-
 if (config.authProviders.google) {
     const authConf = config.authProviders.google;
     const validIssuers = ["accounts.google.com", "https://accounts.google.com"]
@@ -263,53 +259,6 @@ if (config.authProviders.ldap) {
             }
         });
     };
-} else if (config.authProviders.dummy) {
-    const authConf = config.authProviders.dummy;
-    const privateKey = fs.readFileSync(authConf.privateKeyLocation);
-
-    loginHandler = (req: express.Request, res: express.Response) => {
-        let username = req.body?.username;
-        const password = req.body?.password;
-
-        if (!username || !password) {
-            throw {statusCode: 400, message: "Malformed login request"};
-        }
-
-        try {
-            const uid = userid.uid(username);
-            console.log(`Authenticated as user ${username} with uid ${uid}`);
-
-            const refreshToken = jwt.sign({
-                    iss: authConf.issuer,
-                    username,
-                    refreshToken: true
-                },
-                privateKey, {
-                    algorithm: authConf.keyAlgorithm,
-                    expiresIn: authConf.refreshTokenAge
-                });
-            res.cookie("Refresh-Token", refreshToken, {
-                path: "/api/auth/refresh",
-                maxAge: ms(authConf.refreshTokenAge as string),
-                httpOnly: true,
-                secure: true,
-                sameSite: "strict"
-            });
-
-            const access_token = jwt.sign({iss: authConf.issuer, username}, privateKey, {
-                algorithm: authConf.keyAlgorithm,
-                expiresIn: authConf.accessTokenAge
-            });
-
-            res.json({
-                access_token,
-                token_type: "bearer",
-                expires_in: ms(authConf.accessTokenAge as string) / 1000
-            });
-        } catch (e) {
-            throw {statusCode: 403, message: "User does not exist"};
-        }
-    };
 } else {
     loginHandler = (req, res) => {
         throw {statusCode: 501, message: "Login not implemented"};
@@ -363,8 +312,6 @@ function generateLocalRefreshHandler(authConf: { issuer: string, keyAlgorithm: j
 
 if (config.authProviders.ldap) {
     refreshHandler = generateLocalRefreshHandler(config.authProviders.ldap);
-} else if (config.authProviders.dummy) {
-    refreshHandler = generateLocalRefreshHandler(config.authProviders.dummy);
 } else {
     refreshHandler = (req, res) => {
         throw {statusCode: 501, message: "Token refresh not implemented"};

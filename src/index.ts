@@ -18,11 +18,41 @@ app.use(cookieParser());
 app.use(bearerToken());
 app.use(cors());
 app.use(compression());
-app.use(express.static('public'));
 
 app.use("/api/auth", authRouter);
 app.use("/api/server", serverRouter);
 app.use("/api/database", databaseRouter);
+
+const config = require("../config/config.ts");
+
+// Construct runtime config
+type RuntimeConfig = {
+    dashboardAddress?: string;
+    apiAddress?: string;
+    googleClientId?: string;
+    tokenRefreshAddress?: string;
+    logoutAddress?: string;
+}
+const runtimeConfig: RuntimeConfig = {};
+
+runtimeConfig.dashboardAddress = config.dashboardAddress || config.serverAddress;
+runtimeConfig.apiAddress = config.apiAddress || (config.serverAddress + "/api");
+if (config.authProviders.google) {
+    runtimeConfig.googleClientId = config.authProviders.google.clientId;
+} else if (config.authProviders.external) {
+    runtimeConfig.tokenRefreshAddress = config.authProviders.external.tokenRefreshAddress;
+    runtimeConfig.logoutAddress = config.authProviders.external.logoutAddress;
+} else {
+    runtimeConfig.tokenRefreshAddress = runtimeConfig.apiAddress + "/auth/refresh";
+    runtimeConfig.logoutAddress = runtimeConfig.apiAddress + "/auth/logout";
+}
+
+app.use("/frontend/config", (req: express.Request, res: express.Response) => {
+    return res.json(runtimeConfig);
+})
+
+app.use(express.static('public'));
+
 
 // Simplified error handling
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -42,7 +72,7 @@ const backendProxy = httpProxy.createServer({ws: true});
 expressServer.on("upgrade", createUpgradeHandler(backendProxy));
 
 // Handle WS disconnects
-backendProxy.on("error", (err: any)=> {
+backendProxy.on("error", (err: any) => {
     // Ignore connection resets
     if (err?.code === "ECONNRESET") {
         return;
@@ -52,7 +82,6 @@ backendProxy.on("error", (err: any)=> {
     }
 });
 
-const config = require("../config/config.ts");
 
 async function init() {
     await initDB();

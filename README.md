@@ -21,8 +21,6 @@ A working NodeJS installation with NPM is required. All node dependencies should
 - **Google authentication**: Google's authentication libraries are used for handling authentication. In order to use this, a new web application must be created in the [Google API console](https://console.developers.google.com/apis/credentials). The client ID provided by this application must be used in a number of places during the configuration.
 * **External authentication**: Allows users to authenticate with some external OAuth2-based authentication system. This requires a fair amount of configuration, and has not been well-tested. It is assumed that the refresh token passed by the authentication system is stored as an `HttpOnly` cookie.
 
-Placeholder authentication (accepting any username and password) is also included, but should not be used on anything other than test deployments.
-
 A private/public key pair in PEM format can be generated using `ssh-keygen` or `openssl`:
 ```shell script
 ssh-keygen -t rsa -b 4096 -m PEM -f carta_rsa.key

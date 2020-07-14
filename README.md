@@ -21,69 +21,23 @@ A working NodeJS installation with NPM is required. All node dependencies should
 - **Google authentication**: Google's authentication libraries are used for handling authentication. In order to use this, a new web application must be created in the [Google API console](https://console.developers.google.com/apis/credentials). The client ID provided by this application must be used in a number of places during the configuration.
 * **External authentication**: Allows users to authenticate with some external OAuth2-based authentication system. This requires a fair amount of configuration, and has not been well-tested. It is assumed that the refresh token passed by the authentication system is stored as an `HttpOnly` cookie.
 
-A private/public key pair in PEM format can be generated using `ssh-keygen` or `openssl`:
+A private/public key pair in PEM format can be generated using `openssl`:
 ```shell script
-ssh-keygen -t rsa -b 4096 -m PEM -f carta_rsa.key
-openssl rsa -in carta_rsa.key -pubout -outform PEM -out carta_rsa.key.pub
+openssl genrsa -out carta_private.pem 4096
+openssl rsa -in carta_private.pem -outform PEM -pubout -out carta_public.pem
 ```
 
-## Configuration
-Both the server and the frontend need to be configured correctly according to the authentication approach used.
-
-### Frontend Configuration
-Frontend configuration should be provided by modifying the [runtimeConfig.js](config/runtimeConfig.js.stub) after the built frontend has been placed in the `public/frontend` directory. If using google authentication, the following configuration options are required:
-```javascript
-window["cartaRuntimeConfig"] = {
-    // Common properties
-    dashboardAddress: "https://my-carta-server.com",
-    apiAddress: "https://my-carta-server.com/api",
-
-    // Required for Google auth
-    googleClientId: "<clientID>.apps.googleusercontent.com",
-}
-```
-If using LDAP-based or external authentication, the addresses of the refresh endpoint and (optionally) logout endpoint must be provided:
-```javascript
-window["cartaRuntimeConfig"] = {
-    // Common properties
-    dashboardAddress: "https://my-carta-server.com",
-    apiAddress: "https://my-carta-server.com/api",
-
-    // Required for LDAP and external auth
-    tokenRefreshAddress: "https://my-carta-server.com/api/auth/refresh",
-    logoutAddress: "https://my-carta-server.com/api/auth/logout"
-}
-```
-
-### Server Configuration
+## Server Configuration
 Server configuration is handled by a configuration file `config/config.ts`. Detailed comments on each of the server options are given in the [example config](config/config.ts.stub). For external authentication systems, you may need to translate a unique ID (such as email or username) from the authenticated user information to the system user. This can be performed by providing a [user lookup table](config/usertable.txt.stub), which is watched by the server and reloaded whenever it is updated.
 
 If using Google authentication, there are some lines that need to be uncommented in the `<head>` section of the [public/index.html](public/index.html) file.
 
-### System Configuration
+## System Configuration
 The CARTA server will attempt to start up a `carta_backend` process as the authenticated user. In order to do this, the user under which the server is running (assumed to be `carta`) needs to be given permission to start the backend process as any authorised user, and to stop any `carta_backend` processes on the system. Both are handled via running commands via `sudo -u <user>`. Rather than allowing the `carta` user to kill all processes beloning to authorised users, a [kill script](scripts/kill_script.sh) is used, which is only able to kill processes matching the name `carta_backend`. In order to provide the `carta` user with these privledges, modifications to the [sudoers configuration](https://www.sudo.ws/man/1.9.0/sudoers.man.html) must be made. An [example sudoers config](config/example_sudoers_conf.stub) is given. This is designed to allow the `carta` user to only run `carta_backend` as users belonging to a specific group (assumed to be `carta-users`), in order to prevent access to unauthorized accounts. **Please only edit your sudoers configuration with `visudo` or equivalent.**
 
-If using [nginx](https://www.nginx.com/) as a proxy, the following configuration example can be used as a starting point to redirect traffic from port 8000 to port 80:
-
-```nginx
-server {
-    listen 80;
-    server_name my-carta-server.com;
-    location / {
-        proxy_set_header   X-Forwarded-For $remote_addr;
-        proxy_pass http://localhost:8000/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
-We strongly suggest serving over HTTPS and redirecting HTTP traffic to HTTPS, especially if handling authentication internally. In order to do this, nginx needs additional configuration and a certificate pair (assumed to be stored in `/etc/nginx/ssl` with the correct file permissions). As an example:
-
-```nginx
+We strongly suggest serving over HTTPS and redirecting HTTP traffic to HTTPS, especially if handling authentication internally. If using [nginx](https://www.nginx.com/) as a proxy, the following configuration example can be used as a starting point to redirect incoming traffic from port 443 to port 8000:
+ 
+ ```nginx
 server {
     listen 443 ssl;
     ssl on;

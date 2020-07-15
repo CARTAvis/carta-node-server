@@ -4,6 +4,7 @@ import * as url from "url";
 import * as fs from "fs";
 import * as moment from "moment";
 import * as querystring from "querystring";
+import * as io from "@pm2/io";
 import {ChildProcess, spawn, spawnSync} from "child_process";
 import {delay, noCache} from "./util";
 import {AuthenticatedRequest, authGuard, getUser, verifyToken} from "./auth";
@@ -11,6 +12,21 @@ import {IncomingMessage} from "http";
 
 const config = require("../config/config.ts");
 const processMap = new Map<string, { process: ChildProcess, port: number }>();
+
+const userProcessesMetric = io.metric({
+    name: 'Active Backend Processes',
+    id: 'app/realtime/backend',
+});
+
+function setProcess(username: string, port: number, process: ChildProcess) {
+    processMap.set(username, {port, process});
+    userProcessesMetric.set(processMap.size);
+}
+
+function deleteProcess(username: string) {
+    processMap.delete(username);
+    userProcessesMetric.set(processMap.size);
+}
 
 function nextAvailablePort() {
     if (!processMap.size) {
@@ -70,7 +86,7 @@ async function handleStartServer(req: AuthenticatedRequest, res: express.Respons
                     spawnSync("sudo", ["-u", `${username}`, config.killCommand, `${existingProcess.process.pid}`]);
                     // Delay to allow the parent process to exit
                     await delay(10);
-                    processMap.delete(username);
+                    deleteProcess(username);
                 }
             } catch (e) {
                 console.log(`Error killing existing process belonging to user ${username}`);
@@ -128,7 +144,7 @@ async function startServer(username: string) {
 
         child.on("exit", code => {
             console.log(`Process ${child.pid} exited with code ${code} and signal ${child.signalCode}`);
-            processMap.delete(username);
+            deleteProcess(username);
             logStream?.close();
         });
 
@@ -138,7 +154,7 @@ async function startServer(username: string) {
             throw {statusCode: 500, message: `Problem starting process for user ${username}`};
         } else {
             console.log(`Started process with PID ${child.pid} for user ${username} on port ${port}. Outputting to ${logLocation}`);
-            processMap.set(username, {port, process: child});
+            setProcess(username, port, child);
             return;
         }
     } catch (e) {
@@ -167,7 +183,7 @@ async function handleStopServer(req: AuthenticatedRequest, res: express.Response
             // Delay to allow the parent process to exit
             await delay(10);
             console.log(`Process with PID ${existingProcess.process.pid} for user ${req.username} exited via stop request`);
-            processMap.delete(req.username);
+            deleteProcess(req.username);
             res.json({success: true});
         } else {
             return next({statusCode: 400, message: `No existing process belonging to user ${req.username}`});

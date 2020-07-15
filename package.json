@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@pm2/io": "^4.3.5",
     "@types/chalk": "^2.2.0",
     "@types/compression": "^1.7.0",
     "@types/cookie-parser": "^1.4.2",

@@ -1,87 +1,67 @@
 # CARTA Server (NodeJS version)
 
-#### Work-in-progress, documentation still under construction
+#### Work in progress, documentation still under construction
 
 ## Introduction
-Provides a simple dashboard for authenticating users, starting up a CARTA backend process as the authenticated user, serving static frontend code to clients and a dynamic proxy to redirect authenticated client connections to the appropriate backend process. Authentication can either be handled by the server itself, or by an external OAuth2-based authentication server.
+
+The CARTA server provides a simple dashboard which authenticates users and allows them to manage their CARTA backend processes. It also serves static frontend code to clients, and dynamically redirects authenticated client connections to the appropriate backend processes. The server can either handle authentication itself, or delegate it to an external OAuth2-based authentication server.
 
 ## Dependencies
-In order to serve CARTA sessions, the CARTA backend must be executable by the server. This can be in the form of a compiled executable or a container.
-The `dev` branch of [carta-backend](https://github.com/CARTAvis/carta-backend) should be used. 
-The CARTA frontend must be built and either copied or symlinked inside this repo's `public` folder as `frontend`. The `angus/database_service` branch should be used.
 
-By default, the server runs on port 8000. It should be run behind a proxy, so it can be accessed via HTTP and HTTPS. 
+To allow the server to serve CARTA sessions, you must give it access to an executable CARTA backend, which can be either a compiled executable or a container. You must also build the CARTA frontend, and either copy or symlink it into this repo's `public` directory as `frontend`. You should use the `dev` branch of [`carta-backend`](https://github.com/CARTAvis/carta-backend). and the `angus/database_service` branch of [`carta-frontend`](https://github.com/CARTAvis/carta-frontend).
 
-MongoDB is required for storing user preferences, layouts and (in the near future) server metrics.
-A working NodeJS installation with NPM is required. All node dependencies should be installed by `npm install`.
+By default, the server runs on port 8000. It should be run behind a proxy, so that it can be accessed via HTTP and HTTPS. 
+
+MongoDB is required for storing user preferences, layouts and (in the near future) server metrics. You also need a working NodeJS installation with NPM. Use `npm install` to install all Node dependencies.
 
 ## Authentication support
-`carta-node-server` supports three modes for authentication. All three modes use refresh and access tokens stored in [JWT](https://jwt.io/) format, based on the [OAuth2 Authorization flow](https://tools.ietf.org/html/rfc6749#section-1.3.1). The modes are:
-- **LDAP-based authentication**: An existing LDAP server is used for user authentication. After the user's username and password configuration are validated by the LDAP server, `carta-node-server` returns a long-lived refresh token, signed with a private key, that can be exchanged by the CARTA dashboard, or the CARTA frontend client for a short-lived access token.
-- **Google authentication**: Google's authentication libraries are used for handling authentication. In order to use this, a new web application must be created in the [Google API console](https://console.developers.google.com/apis/credentials). The client ID provided by this application must be used in a number of places during the configuration.
-* **External authentication**: Allows users to authenticate with some external OAuth2-based authentication system. This requires a fair amount of configuration, and has not been well-tested. It is assumed that the refresh token passed by the authentication system is stored as an `HttpOnly` cookie.
 
-A private/public key pair in PEM format can be generated using `openssl`:
+The CARTA server supports three modes for authentication. All three modes use refresh and access tokens, as described in the [OAuth2 Authorization flow](https://tools.ietf.org/html/rfc6749#section-1.3.1), stored in [JWT](https://jwt.io/) format. The modes are:
+- **LDAP-based authentication**: An existing LDAP server is used for user authentication. After the user's username and password configuration are validated by the LDAP server, `carta-node-server` returns a long-lived refresh token, signed with a private key, which can be exchanged by the CARTA dashboard or the CARTA frontend client for a short-lived access token.
+- **Google authentication**: Google's authentication libraries are used for handling authentication. You must create a new web application in the [Google API console](https://console.developers.google.com/apis/credentials). You will then use the  client ID provided by this application in a number of places during the configuration.
+- **External authentication**: This allows users to authenticate with some external OAuth2-based authentication system. This requires a fair amount of configuration, and has not been well-tested. It is assumed that the refresh token passed by the authentication system is stored as an `HttpOnly` cookie.
+
+You can generate a private/public key pair in PEM format using `openssl`:
 ```shell script
 openssl genrsa -out carta_private.pem 4096
 openssl rsa -in carta_private.pem -outform PEM -pubout -out carta_public.pem
 ```
 
 ## Server Configuration
-Server configuration is handled by a configuration file `config/config.ts`. Detailed comments on each of the server options are given in the [example config](config/config.ts.stub). For external authentication systems, you may need to translate a unique ID (such as email or username) from the authenticated user information to the system user. This can be performed by providing a [user lookup table](config/usertable.txt.stub), which is watched by the server and reloaded whenever it is updated.
 
-If using Google authentication, there are some lines that need to be uncommented in the `<head>` section of the [public/index.html](public/index.html) file.
+Server configuration is handled by the configuration file `config/config.ts`. Detailed comments on each of the server options are given in the [example config](config/config.ts.stub). For external authentication systems, you may need to translate a unique ID (such as email or username) from the authenticated user information to the system user. You can do this by providing a [user lookup table](config/usertable.txt.stub), which is watched by the server and reloaded whenever it is updated.
+
+If you use Google authentication, you need to uncomment some lines in the `<head>` section of the [public/index.html](public/index.html) file.
 
 ## System Configuration
-The CARTA server will attempt to start up a `carta_backend` process as the authenticated user. In order to do this, the user under which the server is running (assumed to be `carta`) needs to be given permission to start the backend process as any authorised user, and to stop any `carta_backend` processes on the system. Both are handled via running commands via `sudo -u <user>`. Rather than allowing the `carta` user to kill all processes beloning to authorised users, a [kill script](scripts/kill_script.sh) is used, which is only able to kill processes matching the name `carta_backend`. In order to provide the `carta` user with these privledges, modifications to the [sudoers configuration](https://www.sudo.ws/man/1.9.0/sudoers.man.html) must be made. An [example sudoers config](config/example_sudoers_conf.stub) is given. This is designed to allow the `carta` user to only run `carta_backend` as users belonging to a specific group (assumed to be `carta-users`), in order to prevent access to unauthorized accounts. **Please only edit your sudoers configuration with `visudo` or equivalent.**
 
-We strongly suggest serving over HTTPS and redirecting HTTP traffic to HTTPS, especially if handling authentication internally. If using [nginx](https://www.nginx.com/) as a proxy, the following configuration example can be used as a starting point to redirect incoming traffic from port 443 to port 8000:
- 
- ```nginx
-server {
-    listen 443 ssl;
-    ssl on;
-    server_name my-carta-server.com;
-    ssl_certificate /etc/nginx/ssl/cert.pem; 
-    ssl_certificate_key /etc/nginx/ssl/key.pem;
-    location / {
-        proxy_set_header   X-Forwarded-For $remote_addr;
-        proxy_pass http://localhost:8000/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
+The user under which the CARTA server is running (assumed to be `carta`) must be given permission to use `sudo` to start `carta_backend` processes as any authenticated user and stop running `carta_backend` processes belonging to authenticated users. We provide a [kill script](scripts/kill_script.sh) which is only able to kill processes matching the name `carta_backend`. This makes it possible to restrict what processes the `carta` user is permitted to kill.
 
-server {
-    server_name my-carta-server.com;    
-    if ($host = my-carta-server.com) {
-        return 301 https://$host$request_uri;
-    }
-    listen 80 ;
-    listen [::]:80 ;
-    return 404;
-}
-```
+To provide the `carta` user with these privileges, you must make modifications to the [sudoers configuration](https://www.sudo.ws/man/1.9.0/sudoers.man.html). An [example sudoers config](config/example_sudoers_conf.stub) is provided. This example allows the `carta` user to run `carta_backend` only as users belonging to a specific group (assumed to be `carta-users`), in order to deny access to unauthorized accounts.
 
-Other HTTP servers, such as Apache, may also be used. Please ensure that they are set up to forward both standard HTTP requests and WebSocket traffic to the correct port.
+**Please only edit your sudoers configuration with `visudo` or equivalent.**
 
-By default, the configuration attempts to write log files to the `/var/log/carta` directory. Please ensure this directory exists and the `carta` user has write permission.
+We strongly suggest serving over HTTPS and redirecting HTTP traffic to HTTPS, especially if handling authentication internally. If you use [nginx](https://www.nginx.com/) as a proxy, you can use [this configuration example](config/example_nginx.conf.stub) as a starting point to redirect incoming traffic from port 443 to port 8000.
+
+You can also use other HTTP servers, such as Apache. Please ensure that they are set up to forward both standard HTTP requests and WebSocket traffic to the correct port.
+
+By default, the server attempts to write log files to the `/var/log/carta` directory. Please ensure that this directory exists and that the `carta` user has write permission.
 
 ## Running the server
+
 - Build [carta-backend](https://github.com/CARTAvis/carta-backend) using the `dev` branch (or create the appropriate container)
-- Configure and build [carta-frontend](https://github.com/CARTAvis/carta-frontend) using the `angus/database_service` branch.
+- Configure and build [carta-frontend](https://github.com/CARTAvis/carta-frontend) using the `angus/database_service` branch
 - Edit the server configuration file
 - Perform system configuration
 
-After building the frontend and backend, and editing the server configuration, the server can be started by simply running `npm run start` to start the server. In order to keep the server running, a utility such as [forever](https://github.com/foreversd/forever) can be used to automatically restart it.
+After you have built the frontend and backend and edited the server configuration, you can start the server with `npm run start`. You can use a utility such as [forever](https://github.com/foreversd/forever) to keep the server running by restarting it automatically.
 
 ## Getting help
-If there are issues with the server or documentation, please submit an issue in this repo. If you need assistance in configuration or deployment, please contact the [CARTA helpdesk](mailto:carta_helpdesk@asiaa.sinica.edu.tw).
+
+If you encounter a problem with the server or documentation, please submit an issue in this repo. If you need assistance in configuration or deployment, please contact the [CARTA helpdesk](mailto:carta_helpdesk@asiaa.sinica.edu.tw).
 
 ## TODO
+
 Still to be implemented:
 - Better error feedback
 - More flexibility with external auth

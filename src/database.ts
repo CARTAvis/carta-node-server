@@ -1,20 +1,21 @@
 import * as express from "express";
 import {Collection, MongoClient} from "mongodb";
-import {AuthenticatedRequest, authGuard} from "./auth";
+import {authGuard} from "./auth";
 import {noCache} from "./util";
+import {AuthenticatedRequest} from "./types";
+import ServerConfig from "./config";
 
 const PREFERENCE_SCHEMA_VERSION = 1;
 const preferenceSchema = require("./preference_schema_1.json");
-const config = require("../config/config.ts");
 
 let client: MongoClient;
 let preferenceCollection: Collection;
 
 export async function initDB() {
-    if (config.database?.url && config.database?.databaseName) {
+    if (ServerConfig.database?.uri && ServerConfig.database?.databaseName) {
         try {
-            client = await MongoClient.connect(config.database.url, {useUnifiedTopology: true});
-            const db = await client.db(config.database.databaseName);
+            client = await MongoClient.connect(ServerConfig.database.uri, {useUnifiedTopology: true});
+            const db = await client.db(ServerConfig.database.databaseName);
             // Create collection if it doesn't exist
             preferenceCollection = await db.createCollection("preferences");
             // Update with the latest schema
@@ -24,11 +25,15 @@ export async function initDB() {
                 await preferenceCollection.createIndex({username: 1}, {name: "username", unique: true, dropDups: true});
                 console.log(`Created username index for collection ${preferenceCollection.collectionName}`);
             }
-            console.log(`Connected to server ${config.database.url} and database ${config.database.databaseName}`);
+            console.log(`Connected to server ${ServerConfig.database.uri} and database ${ServerConfig.database.databaseName}`);
         } catch (err) {
             console.log(err);
             console.error("Error connecting to database");
+            process.exit(1);
         }
+    } else {
+        console.error("Database configuration not found");
+        process.exit(1);
     }
 }
 

@@ -6,11 +6,12 @@ import * as moment from "moment";
 import * as querystring from "querystring";
 import * as io from "@pm2/io";
 import {ChildProcess, spawn, spawnSync} from "child_process";
-import {delay, noCache} from "./util";
-import {AuthenticatedRequest, authGuard, getUser, verifyToken} from "./auth";
 import {IncomingMessage} from "http";
+import {delay, noCache} from "./util";
+import {authGuard, getUser, verifyToken} from "./auth";
+import {AuthenticatedRequest} from "./types";
+import ServerConfig from "./config";
 
-const config = require("../config/config.ts");
 const processMap = new Map<string, { process: ChildProcess, port: number }>();
 
 const userProcessesMetric = io.metric({
@@ -30,7 +31,7 @@ function deleteProcess(username: string) {
 
 function nextAvailablePort() {
     if (!processMap.size) {
-        return config.backendPorts.min;
+        return ServerConfig.backendPorts.min;
     }
 
     // Get a map of all the ports in the range currently in use
@@ -39,7 +40,7 @@ function nextAvailablePort() {
         existingPorts.set(value.port, true);
     })
 
-    for (let p = config.backendPorts.min; p < config.backendPorts.max; p++) {
+    for (let p = ServerConfig.backendPorts.min; p < ServerConfig.backendPorts.max; p++) {
         if (!existingPorts.has(p)) {
             return p;
         }
@@ -83,7 +84,7 @@ async function handleStartServer(req: AuthenticatedRequest, res: express.Respons
                 const existingProcess = processMap.get(username);
                 if (existingProcess) {
                     // Kill the process via the kill script
-                    spawnSync("sudo", ["-u", `${username}`, config.killCommand, `${existingProcess.process.pid}`]);
+                    spawnSync("sudo", ["-u", `${username}`, ServerConfig.killCommand, `${existingProcess.process.pid}`]);
                     // Delay to allow the parent process to exit
                     await delay(10);
                     deleteProcess(username);
@@ -116,28 +117,32 @@ async function startServer(username: string) {
 
         let args = [
             "-u", `${username}`,
-            config.processCommand,
+            ServerConfig.processCommand,
             "-port", `${port}`,
-            "-root", config.rootFolderTemplate.replace("{username}", username),
-            "-base", config.baseFolderTemplate.replace("{username}", username),
+            "-root", ServerConfig.rootFolderTemplate.replace("{username}", username),
+            "-base", ServerConfig.baseFolderTemplate.replace("{username}", username),
         ];
 
-        if (config.additionalArgs) {
-            args = args.concat(config.additionalArgs);
+        if (ServerConfig.additionalArgs) {
+            args = args.concat(ServerConfig.additionalArgs);
         }
 
         const child = spawn("sudo", args);
         let logLocation: string;
 
-        if (config.logFileTemplate) {
-            logLocation = config.logFileTemplate
+        if (ServerConfig.logFileTemplate) {
+            logLocation = ServerConfig.logFileTemplate
                 .replace("{username}", username)
                 .replace("{pid}", child.pid.toString())
                 .replace("{datetime}", moment().format("YYYYMMDD.h_mm_ss"));
 
-            logStream = fs.createWriteStream(logLocation, {flags: "a"});
-            child.stdout.pipe(logStream);
-            child.stderr.pipe(logStream);
+            try {
+                logStream = fs.createWriteStream(logLocation, {flags: "a"});
+                child.stdout.pipe(logStream);
+                child.stderr.pipe(logStream);
+            } catch (err) {
+                console.error(`Could not create log file at ${logLocation}. Please ensure folder exists and permissions are set correctly`);
+            }
         } else {
             logLocation = "stdout";
         }
@@ -149,7 +154,7 @@ async function startServer(username: string) {
         });
 
         // Check for early exit of backend process
-        await delay(config.startDelay);
+        await delay(ServerConfig.startDelay);
         if (child.exitCode || child.signalCode) {
             throw {statusCode: 500, message: `Problem starting process for user ${username}`};
         } else {
@@ -179,7 +184,7 @@ async function handleStopServer(req: AuthenticatedRequest, res: express.Response
         if (existingProcess) {
             existingProcess.process.removeAllListeners();
             // Kill the process via the kill script
-            spawnSync("sudo", ["-u", `${req.username}`, config.killCommand, `${existingProcess.process.pid}`]);
+            spawnSync("sudo", ["-u", `${req.username}`, ServerConfig.killCommand, `${existingProcess.process.pid}`]);
             // Delay to allow the parent process to exit
             await delay(10);
             console.log(`Process with PID ${existingProcess.process.pid} for user ${req.username} exited via stop request`);

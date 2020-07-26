@@ -19,7 +19,9 @@
     "@types/jsonwebtoken": "^8.5.0",
     "@types/mongodb": "^3.5.25",
     "@types/ms": "^0.7.31",
-    "@types/node": "^14.0.22",
+    "@types/node": "^14.0.26",
+    "@types/yargs": "^15.0.5",
+    "ajv": "^6.12.3",
     "body-parser": "^1.19.0",
     "chalk": "^4.1.0",
     "compression": "^1.7.4",
@@ -27,15 +29,18 @@
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "express-bearer-token": "^2.4.0",
-    "google-auth-library": "^6.0.4",
+    "google-auth-library": "^6.0.5",
+    "hjson": "^3.2.1",
     "http-proxy": "^1.18.1",
     "jsonwebtoken": "^8.5.1",
     "ldapauth-fork": "^4.3.3",
     "moment": "^2.27.0",
     "mongodb": "^3.5.9",
     "ms": "^2.1.2",
+    "pug": "^3.0.0",
     "ts-node": "^8.10.2",
-    "typescript": "^3.9.6",
-    "userid": "^1.0.0-beta.6"
+    "typescript": "^3.9.7",
+    "userid": "^1.0.0-beta.6",
+    "yargs": "^15.4.1"
   }
 }

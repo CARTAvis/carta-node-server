@@ -1,7 +1,7 @@
 # customise this file to fit your environment using visudo /etc/sudoers.d/carta_server
 
 # carta user can run the carta_backend command as any user in the carta-users group without entering password
-carta ALL=(%carta-users) NOPASSWD: /path/to/carta_backend
+carta ALL=(%carta-users) NOPASSWD: /usr/local/bin/carta_backend
 
 # carta user can run the kill script as any user in the carta-users group without entering password
-carta ALL=(%carta-users) NOPASSWD: /path/to/kill_script.sh
+carta ALL=(%carta-users) NOPASSWD: /usr/local/bin/carta_kill_script.sh

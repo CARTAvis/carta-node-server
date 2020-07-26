@@ -1,0 +1,23 @@
+{
+    "$schema": "./config_schema.json",
+    "authProviders": {
+        "ldap": {
+            "publicKeyLocation": "/etc/carta/carta_rsa.key.pub",
+            "privateKeyLocation": "/etc/carta/carta_rsa.key",
+            "issuer": "CARTA",
+            "ldapOptions": {
+                "url": "ldap://ldap.address:port",
+                "searchBase": "dc=example"
+            }
+        }
+    },
+    "database": {
+        "uri": "mongodb://localhost:27017",
+        "databaseName": "CARTA"
+    },
+    "serverAddress": "https://my-carta-server.com",
+    "processCommand": "/usr/local/bin/carta_backend",
+    "killCommand": "/usr/local/bin/carta_kill_script.sh",
+    "rootFolderTemplate": "/home/{username}",
+    "baseFolderTemplate": "/home/{username}"
+}

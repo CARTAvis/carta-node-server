@@ -1,0 +1,29 @@
+head
+    meta(charset='UTF-8')
+    if clientId
+        meta(name='google-signin-scope' content='profile email')
+        meta(name='google-signin-client_id' content=clientId)
+        if hostedDomain
+            meta(name='google-signin-hosted_domain' content=hostedDomain)
+        script(src='https://apis.google.com/js/platform.js?onload=initGoogleAuth' async='' defer='')
+    link(rel='stylesheet' href='dashboard.css')
+    link(rel='stylesheet' href='https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css')
+    link(rel='shortcut icon' href='carta_icon_128px.png')
+    title CARTA Dashboard
+    script(src='https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js')
+    script(src='dashboard.js')
+.dashboard
+    .login-form
+        if !clientId
+            input#username(type='text' placeholder='username')
+            input#password(type='password' placeholder='password')
+            button#login.button.button-primary Login
+        else
+            .sso-buttons
+                .g-signin2(data-onsuccess='onSignIn' data-theme='dark')
+        p#login-status(style='display: none')
+    .carta-form(style='display: none')
+        button#open.button.button-secondary open CARTA
+        button#stop.button.button-warning stop carta server
+        button#logout.button.button-primary logout
+        p#carta-status(style='display: none')

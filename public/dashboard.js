@@ -1,14 +1,3 @@
-const notyf = new Notyf({
-    ripple: true,
-    position: {x: "center"},
-    types: [{
-        type: "warning",
-        background: "orange"
-    }, {
-        type: "info",
-        background: "#4c84af",
-    }]
-});
 const strippedPath = window.location.href.replace(window.location.search, "");
 const apiBase = `${strippedPath}api`;
 const urlParams = new URLSearchParams(window.location.search);
@@ -30,6 +19,7 @@ let token = "";
 let tokenLifetime = -1;
 let tokenExpiryTime = -1;
 let serverRunning = false;
+let notyf;
 
 apiCall = async (callName, jsonBody, method, authRequired) => {
     const options = {
@@ -315,6 +305,18 @@ showLoginForm = (show) => {
 }
 
 window.onload = async () => {
+    notyf = new Notyf({
+        ripple: true,
+        position: {x: "center"},
+        types: [{
+            type: "warning",
+            background: "orange"
+        }, {
+            type: "info",
+            background: "#4c84af",
+        }]
+    });
+
     // Hide open button if using popup
     if (isPopup) {
         document.getElementById("open").style.display = "none";

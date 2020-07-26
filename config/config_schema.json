@@ -1,0 +1,314 @@
+{
+    "$id": "https://example.com/person.schema.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "CARTA configuration file",
+    "type": "object",
+    "required": [
+        "authProviders",
+        "database",
+        "serverAddress",
+        "processCommand",
+        "killCommand",
+        "rootFolderTemplate",
+        "baseFolderTemplate"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "$schema": {
+            "type": "string"
+        },
+        "authProviders": {
+            "type": "object",
+            "description": "Configuration option for authentication providers",
+            "additionalProperties": false,
+            "oneOf": [
+                {
+                    "required": [
+                        "google"
+                    ]
+                },
+                {
+                    "required": [
+                        "ldap"
+                    ]
+                },
+                {
+                    "required": [
+                        "external"
+                    ]
+                }
+            ],
+            "properties": {
+                "google": {
+                    "description": "Google authentication configuration",
+                    "additionalProperties": false,
+                    "required": [
+                        "clientId",
+                        "userLookupTable"
+                    ],
+                    "properties": {
+                        "clientId": {
+                            "description": "Google application client ID",
+                            "type": "string",
+                            "pattern": "^\\S+.apps.googleusercontent.com$"
+                        },
+                        "validDomain": {
+                            "description": "Valid domains to accept. If this is empty or undefined, all domains are accepted. Domain specified by 'hd' field.",
+                            "type": "string"
+                        },
+                        "useEmailAsId": {
+                            "description": "Whether to use the email field as a unique identifier",
+                            "type": "boolean",
+                            "default": true
+                        },
+                        "userLookupTable": {
+                            "description": "Path of user lookup table as text file in format <unique user ID> <system user>.",
+                            "type": "string"
+                        }
+                    }
+                },
+                "ldap": {
+                    "description": "LDAP-based authentication configuration",
+                    "additionalProperties": false,
+                    "required": [
+                        "publicKeyLocation",
+                        "privateKeyLocation",
+                        "issuer",
+                        "ldapOptions"
+                    ],
+                    "properties": {
+                        "publicKeyLocation": {
+                            "description": "Path to public key (in PEM format) used for verifying JWTs",
+                            "type": "string"
+                        },
+                        "privateKeyLocation": {
+                            "description": "Path to private key (in PEM format) used for signing JWTs",
+                            "type": "string"
+                        },
+                        "keyAlgorithm": {
+                            "description": "Algorithm used for public/private keys",
+                            "type": "string",
+                            "default": "RS256"
+                        },
+                        "issuer": {
+                            "description": "Issuer field for JWT",
+                            "type": "string"
+                        },
+                        "refreshTokenAge": {
+                            "description": "Lifetime of refresh tokens",
+                            "type": "string",
+                            "default": "1w"
+                        },
+                        "accessTokenAge": {
+                            "description": "Lifetime of access tokens",
+                            "type": "string",
+                            "default": "15m"
+                        },
+                        "ldapOptions": {
+                            "description": "Options to path through to the LDAP auth instance",
+                            "additionalProperties": false,
+                            "required": [
+                                "url",
+                                "searchBase"
+                            ],
+                            "properties": {
+                                "url": {
+                                    "description": ":LDAP connection URI",
+                                    "type": "string",
+                                    "format": "uri",
+                                    "pattern": "^ldaps?://"
+                                },
+                                "searchBase": {
+                                    "description": "Search base",
+                                    "type": "string"
+                                },
+                                "searchFilter": {
+                                    "description": "Search filter to use",
+                                    "type": "string",
+                                    "default": "uid={{username}}"
+                                },
+                                "starttls": {
+                                    "description": "Whether to start TLS when making a connection",
+                                    "type": "boolean",
+                                    "default": true
+                                },
+                                "reconnect": {
+                                    "description": "Whether to automatically reconnect to LDAP",
+                                    "type": "boolean",
+                                    "default": true
+                                }
+                            }
+                        }
+                    }
+                },
+                "external": {
+                    "description": "OAuth2-compatible authentication configuration",
+                    "additionalProperties": false,
+                    "required": [
+                        "issuers",
+                        "publicKeyLocation",
+                        "tokenRefreshAddress",
+                        "uniqueField"
+                    ],
+                    "properties": {
+                        "issuers": {
+                            "description": "List of valid issuers in JWT field",
+                            "type": "array",
+                            "items": {
+                                "minLength": 1,
+                                "type": "string"
+                            }
+                        },
+                        "publicKeyLocation": {
+                            "description": "Path to public key (in PEM format) used for verifying JWTs",
+                            "type": "string"
+                        },
+                        "keyAlgorithm": {
+                            "description": "Algorithm used for public/private keys",
+                            "type": "string",
+                            "default": "RS256",
+                            "enum": [
+                                "HS256",
+                                "HS384",
+                                "HS512",
+                                "RS256",
+                                "RS384",
+                                "RS512",
+                                "ES256",
+                                "ES384",
+                                "ES512",
+                                "PS256",
+                                "PS384",
+                                "PS512"
+                            ]
+                        },
+                        "uniqueField": {
+                            "description": "Name of unique field to use as user ID",
+                            "type": "string"
+                        },
+                        "tokenRefreshAddress": {
+                            "description": "Route for refreshing access tokens",
+                            "type": "string",
+                            "format": "uri",
+                            "pattern": "^https?://"
+                        },
+                        "logoutAddress": {
+                            "description": "Route for logging out",
+                            "type": "string",
+                            "format": "uri",
+                            "pattern": "^https?://"
+                        },
+                        "userLookupTable": {
+                            "description": "Path of user lookup table as text file in format <unique user ID> <system user>. If no user lookup is needed, this should be omitted",
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "database": {
+            "type": "object",
+            "description": "Database configuration",
+            "additionalProperties": false,
+            "required": [
+                "uri"
+            ],
+            "properties": {
+                "uri": {
+                    "description": "MongoDB connection URI used to connect to a MongoDB deployment",
+                    "type": "string",
+                    "format": "uri",
+                    "pattern": "^mongodb://",
+                    "default": "mongodb://localhost:27017"
+                },
+                "databaseName": {
+                    "description": "Default database to connect to",
+                    "type": "string",
+                    "default": "CARTA"
+                }
+            }
+        },
+        "serverPort": {
+            "description": "Port to listen on. It is advised to listen on a port other than 80 or 443, behind an SSL proxy",
+            "type": "number",
+            "default": 8000
+        },
+        "serverAddress": {
+            "description": "Public-facing server address",
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https?://"
+        },
+        "dashboardAddress": {
+            "description": "Optional parameter for explicitly configuring a custom dashboard address",
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https?://"
+        },
+        "apiAddress": {
+            "description": "Optional parameter for explicitly configuring a custom API base address",
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https?://"
+        },
+        "frontendPath": {
+            "description": "Path to the built frontend folder",
+            "type": "string",
+            "default": "/etc/carta/frontend"
+        },
+        "backendPorts": {
+            "description": "Port range to use for the CARTA backend process",
+            "additionalProperties": false,
+            "default": {
+                "min": 3003,
+                "max": 3500
+            },
+            "required": [
+                "min",
+                "max"
+            ],
+            "properties": {
+                "min": {
+                    "type": "number"
+                },
+                "max": {
+                    "type": "number"
+                }
+            }
+        },
+        "processCommand": {
+            "description": "Path to CARTA backend executable",
+            "type": "string"
+        },
+        "killCommand": {
+            "description": "Path to CARTA kill script",
+            "type": "string"
+        },
+        "rootFolderTemplate": {
+            "description": "Top-level path of directories accessible to CARTA. The {username} placeholder will be replaced with the username",
+            "type": "string"
+        },
+        "baseFolderTemplate": {
+            "description": "Starting directory of CARTA. Must be a subfolder of rootFolderTemplate. The {username} placeholder will be replaced with the username",
+            "type": "string"
+        },
+        "logFileTemplate": {
+            "description": "Location of log file. {pid} will be replaced by the started process ID. {datetime} will be replaced by date and time formatted as \"YYYYMMDD.h_mm_ss\"",
+            "type": "string",
+            "default": "/var/log/carta/{username}_{datetime}_{pid}.log"
+        },
+        "additionalArgs": {
+            "description": "Additional arguments to be passed to the backend process, defined as an array of strings",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "startDelay": {
+            "description": "How long to wait before checking whether started process is still running and sending a response",
+            "type": "number",
+            "minimum": 0,
+            "default": 250
+        }
+    }
+}

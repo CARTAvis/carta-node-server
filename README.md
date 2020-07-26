@@ -28,6 +28,7 @@ openssl rsa -in carta_private.pem -outform PEM -pubout -out carta_public.pem
 ```
 
 ## Server Configuration
+WIP Readme update. Config is now defined in a JSON file. By default, the server assumes the config file is at `/etc/carta/config.json`. [Config documentation](docs/config_schema.html)
 
 Server configuration is handled by the configuration file `config/config.ts`. Detailed comments on each of the server options are given in the [example config](config/config.ts.stub). For external authentication systems, you may need to translate a unique ID (such as email or username) from the authenticated user information to the system user. You can do this by providing a [user lookup table](config/usertable.txt.stub), which is watched by the server and reloaded whenever it is updated.
 

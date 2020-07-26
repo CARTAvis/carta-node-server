@@ -2,8 +2,8 @@
     "$schema": "./config_schema.json",
     "authProviders": {
         "ldap": {
-            "publicKeyLocation": "/etc/carta/carta_rsa.key.pub",
-            "privateKeyLocation": "/etc/carta/carta_rsa.key",
+            "publicKeyLocation": "/etc/carta/carta_public.pem",
+            "privateKeyLocation": "/etc/carta/carta_private.pem",
             "issuer": "CARTA",
             "ldapOptions": {
                 "url": "ldap://ldap.address:port",

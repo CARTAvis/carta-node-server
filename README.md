@@ -28,11 +28,9 @@ openssl rsa -in carta_private.pem -outform PEM -pubout -out carta_public.pem
 ```
 
 ## Server Configuration
-WIP Readme update. Config is now defined in a JSON file. By default, the server assumes the config file is at `/etc/carta/config.json`. [Config documentation](docs/config_schema.html)
+Server configuration is handled by a configuration file in JSON format, adhering to the [CARTA config schema](config/config_schema.json). Additional details can be found in the auto-generated [config documentation](docs/config_schema.html) or the [example config](config/example_config.json). By default, the server assumes the config file is located at `/etc/carta/config.json`, but this can be changed by using the `--config` or `-c` command line argument when running the server. 
 
-Server configuration is handled by the configuration file `config/config.ts`. Detailed comments on each of the server options are given in the [example config](config/config.ts.stub). For external authentication systems, you may need to translate a unique ID (such as email or username) from the authenticated user information to the system user. You can do this by providing a [user lookup table](config/usertable.txt.stub), which is watched by the server and reloaded whenever it is updated.
-
-If you use Google authentication, you need to uncomment some lines in the `<head>` section of the [public/index.html](public/index.html) file.
+For external authentication systems, you may need to translate a unique ID (such as email or username) from the authenticated user information to the system user. You can do this by providing a [user lookup table](config/usertable.txt.stub), which is watched by the server and reloaded whenever it is updated.
 
 ## System Configuration
 
@@ -52,10 +50,13 @@ By default, the server attempts to write log files to the `/var/log/carta` direc
 
 - Build [carta-backend](https://github.com/CARTAvis/carta-backend) using the `dev` branch (or create the appropriate container)
 - Configure and build [carta-frontend](https://github.com/CARTAvis/carta-frontend) using the `angus/database_service` branch
-- Edit the server configuration file
-- Perform system configuration
+- Edit the server configuration file at `/etc/carta/config.json`
+- Perform system configuration:
+    - Ensure `/var/log/carta` exists and is writeable by the appropriate user    
+    - Adjust the sudoers configuration
+    - Redirect traffic to port 8000
 
-After you have built the frontend and backend and edited the server configuration, you can start the server with `npm run start`. You can use a utility such as [forever](https://github.com/foreversd/forever) to keep the server running by restarting it automatically.
+After you have built the frontend and backend and edited the server configuration, you can start the server with `npm run start`. You can use a utility such as [forever](https://github.com/foreversd/forever) or [pm2](https://pm2.keymetrics.io/) to keep the server running by restarting it automatically.
 
 ## Getting help
 

@@ -1,4 +1,8 @@
-# CARTA Server (NodeJS version)
+# CARTA Server
+[![carta version](https://img.shields.io/badge/CARTA%20Version-1.4.0--alpha--1-red)](https://github.com/CARTAvis/carta/releases)
+[![npm version](http://img.shields.io/npm/v/carta-node-server.svg?style=flat)](https://npmjs.org/package/carta-node-server "View this project on npm")
+![last commit](https://img.shields.io/github/last-commit/CARTAvis/carta-node-server)
+![commit activity](https://img.shields.io/github/commit-activity/m/CARTAvis/carta-node-server)
 
 #### Work in progress, documentation still under construction
 

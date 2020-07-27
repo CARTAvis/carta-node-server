@@ -1,9 +1,3 @@
 .idea/*
 .vscode/*
 node_modules/*
-
-# config.ts should be user-generated from template
-config/config.ts
-public/frontend
-public/frontend/*
-config/usertable.txt

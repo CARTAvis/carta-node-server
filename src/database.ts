@@ -6,7 +6,7 @@ import {AuthenticatedRequest} from "./types";
 import ServerConfig from "./config";
 
 const PREFERENCE_SCHEMA_VERSION = 1;
-const preferenceSchema = require("./preference_schema_1.json");
+const preferenceSchema = require("../config/preference_schema_1.json");
 
 let client: MongoClient;
 let preferenceCollection: Collection;

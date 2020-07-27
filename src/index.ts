@@ -5,6 +5,7 @@ import * as cookieParser from "cookie-parser";
 import * as httpProxy from "http-proxy";
 import * as http from "http";
 import * as cors from "cors";
+import * as path from "path";
 import * as compression from "compression";
 import * as chalk from "chalk";
 import {createUpgradeHandler, serverRouter} from "./serverHandlers";
@@ -21,7 +22,7 @@ app.use(bearerToken());
 app.use(cors());
 app.use(compression());
 app.set("view engine", "pug");
-app.set("views", "./views");
+app.set("views", path.join(__dirname, "../views"));
 app.use("/api/auth", authRouter);
 app.use("/api/server", serverRouter);
 app.use("/api/database", databaseRouter);
@@ -51,7 +52,7 @@ app.get("/", function (req, res) {
 
 console.log(chalk.green.bold(`Serving CARTA frontend from ${ServerConfig.frontendPath}`));
 app.use("/frontend", express.static(ServerConfig.frontendPath));
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "../public")));
 
 // Simplified error handling
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

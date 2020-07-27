@@ -1,6 +1,7 @@
 .idea/*
 .vscode/*
 node_modules/*
-dist/*.js
+src/*
 dist/*.js.map
+tsconfig.json
 carta-node-server-*.tgz

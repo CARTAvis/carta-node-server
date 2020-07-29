@@ -16,7 +16,7 @@ To allow the server to serve CARTA sessions, you must give it access to an execu
 
 By default, the server runs on port 8000. It should be run behind a proxy, so that it can be accessed via HTTP and HTTPS. 
 
-MongoDB is required for storing user preferences, layouts and (in the near future) server metrics. You also need a working NodeJS installation with NPM. Use `npm install` to install all Node dependencies.
+MongoDB is required for storing user preferences, layouts and (in the near future) server metrics. You also need a working [NodeJS LTS](https://github.com/nvm-sh/nvm#long-term-support) installation with NPM. Use `npm install` to install all Node dependencies.
 
 ## Authentication support
 

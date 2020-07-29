@@ -38,7 +38,7 @@ For external authentication systems, you may need to translate a unique ID (such
 
 ## System Configuration
 
-The user under which the CARTA server is running (assumed to be `carta`) must be given permission to use `sudo` to start `carta_backend` processes as any authenticated user and stop running `carta_backend` processes belonging to authenticated users. We provide a [kill script](scripts/kill_script.sh) which is only able to kill processes matching the name `carta_backend`. This makes it possible to restrict what processes the `carta` user is permitted to kill.
+The user under which the CARTA server is running (assumed to be `carta`) must be given permission to use `sudo` to start `carta_backend` processes as any authenticated user and stop running `carta_backend` processes belonging to authenticated users. We provide a [kill script](scripts/carta_kill_script.sh) which is only able to kill processes matching the name `carta_backend`. This makes it possible to restrict what processes the `carta` user is permitted to kill.
 
 To provide the `carta` user with these privileges, you must make modifications to the [sudoers configuration](https://www.sudo.ws/man/1.9.0/sudoers.man.html). An [example sudoers config](config/example_sudoers_conf.stub) is provided. This example allows the `carta` user to run `carta_backend` only as users belonging to a specific group (assumed to be `carta-users`), in order to deny access to unauthorized accounts.
 

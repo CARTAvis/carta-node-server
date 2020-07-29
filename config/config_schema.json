@@ -102,7 +102,8 @@
                     ]
                 },
                 "keyAlgorithm": {
-                    "$ref": "#/definitions/keyAlgorithm"
+                    "$ref": "#/definitions/keyAlgorithm",
+                    "default": "RS256"
                 },
                 "issuer": {
                     "description": "Issuer field for JWT",
@@ -202,7 +203,8 @@
                     ]
                 },
                 "keyAlgorithm": {
-                    "$ref": "#/definitions/keyAlgorithm"
+                    "$ref": "#/definitions/keyAlgorithm",
+                    "default": "RS256"
                 },
                 "uniqueField": {
                     "description": "Name of unique field to use as user ID",

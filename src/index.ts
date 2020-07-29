@@ -5,11 +5,14 @@ import * as cookieParser from "cookie-parser";
 import * as httpProxy from "http-proxy";
 import * as http from "http";
 import * as cors from "cors";
+import * as path from "path";
 import * as compression from "compression";
 import * as chalk from "chalk";
 import {createUpgradeHandler, serverRouter} from "./serverHandlers";
 import {authRouter} from "./auth";
 import {databaseRouter, initDB} from "./database";
+import {CartaRuntimeConfig} from "./types";
+import ServerConfig from "./config";
 
 let app = express();
 app.use(bodyParser.urlencoded({extended: true}));
@@ -18,30 +21,22 @@ app.use(cookieParser());
 app.use(bearerToken());
 app.use(cors());
 app.use(compression());
-
+app.set("view engine", "pug");
+app.set("views", path.join(__dirname, "../views"));
 app.use("/api/auth", authRouter);
 app.use("/api/server", serverRouter);
 app.use("/api/database", databaseRouter);
 
-const config = require("../config/config.ts");
-
 // Construct runtime config
-type RuntimeConfig = {
-    dashboardAddress?: string;
-    apiAddress?: string;
-    googleClientId?: string;
-    tokenRefreshAddress?: string;
-    logoutAddress?: string;
-}
-const runtimeConfig: RuntimeConfig = {};
+const runtimeConfig: CartaRuntimeConfig = {};
 
-runtimeConfig.dashboardAddress = config.dashboardAddress || config.serverAddress;
-runtimeConfig.apiAddress = config.apiAddress || (config.serverAddress + "/api");
-if (config.authProviders.google) {
-    runtimeConfig.googleClientId = config.authProviders.google.clientId;
-} else if (config.authProviders.external) {
-    runtimeConfig.tokenRefreshAddress = config.authProviders.external.tokenRefreshAddress;
-    runtimeConfig.logoutAddress = config.authProviders.external.logoutAddress;
+runtimeConfig.dashboardAddress = ServerConfig.dashboardAddress || ServerConfig.serverAddress;
+runtimeConfig.apiAddress = ServerConfig.apiAddress || (ServerConfig.serverAddress + "/api");
+if (ServerConfig.authProviders.google) {
+    runtimeConfig.googleClientId = ServerConfig.authProviders.google.clientId;
+} else if (ServerConfig.authProviders.external) {
+    runtimeConfig.tokenRefreshAddress = ServerConfig.authProviders.external.tokenRefreshAddress;
+    runtimeConfig.logoutAddress = ServerConfig.authProviders.external.logoutAddress;
 } else {
     runtimeConfig.tokenRefreshAddress = runtimeConfig.apiAddress + "/auth/refresh";
     runtimeConfig.logoutAddress = runtimeConfig.apiAddress + "/auth/logout";
@@ -49,15 +44,20 @@ if (config.authProviders.google) {
 
 app.use("/frontend/config", (req: express.Request, res: express.Response) => {
     return res.json(runtimeConfig);
-})
+});
 
-app.use(express.static('public'));
+app.get("/", function (req, res) {
+    res.render("index", {clientId: ServerConfig.authProviders.google?.clientId, hostedDomain: ServerConfig.authProviders.google?.validDomain});
+});
 
+console.log(chalk.green.bold(`Serving CARTA frontend from ${ServerConfig.frontendPath}`));
+app.use("/frontend", express.static(ServerConfig.frontendPath));
+app.use(express.static(path.join(__dirname, "../public")));
 
 // Simplified error handling
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     err.statusCode = err.statusCode || 500;
-    err.status = err.status || 'error';
+    err.status = err.status || "error";
 
     res.status(err.statusCode).json({
         status: err.status,
@@ -85,7 +85,7 @@ backendProxy.on("error", (err: any) => {
 
 async function init() {
     await initDB();
-    expressServer.listen(config.serverPort, () => console.log(`Started listening for login requests on port ${config.serverPort}`));
+    expressServer.listen(ServerConfig.serverPort, () => console.log(`Started listening for login requests on port ${ServerConfig.serverPort}`));
 }
 
-init().then(() => console.log(chalk.green.bold("Server initialised successfully")));
+init().then(() => console.log(chalk.green.bold(`Server initialised successfully at ${ServerConfig.serverAddress}`)));

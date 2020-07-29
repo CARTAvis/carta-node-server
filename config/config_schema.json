@@ -1,0 +1,405 @@
+{
+    "$id": "https://example.com/person.schema.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "CARTA configuration schema",
+    "description": "Schema defining configuration options for the CARTA server",
+    "type": "object",
+    "required": [
+        "authProviders",
+        "database",
+        "serverAddress",
+        "processCommand",
+        "killCommand",
+        "rootFolderTemplate",
+        "baseFolderTemplate"
+    ],
+    "definitions": {
+        "keyAlgorithm": {
+            "description": "Algorithm used for public/private keys",
+            "type": "string",
+            "default": "RS256",
+            "enum": [
+                "HS256",
+                "HS384",
+                "HS512",
+                "RS256",
+                "RS384",
+                "RS512",
+                "ES256",
+                "ES384",
+                "ES512",
+                "PS256",
+                "PS384",
+                "PS512"
+            ]
+        },
+        "googleAuthProvider": {
+            "type": "object",
+            "title": "Google AuthProvider",
+            "description": "Authentication configuration when using Google authentication",
+            "additionalProperties": false,
+            "required": [
+                "clientId",
+                "userLookupTable"
+            ],
+            "properties": {
+                "clientId": {
+                    "description": "Google application client ID",
+                    "type": "string",
+                    "pattern": "^\\S+.apps.googleusercontent.com$",
+                    "examples": [
+                        "my-app-id.apps.googleusercontent.com"
+                    ]
+                },
+                "validDomain": {
+                    "description": "Valid domains to accept. If this is empty or undefined, all domains are accepted. Domain specified by `hd` field in Google authentication configuration.",
+                    "type": "string",
+                    "examples": [
+                        "gmail.com",
+                        "my-google-domain.com",
+                        ""
+                    ]
+                },
+                "useEmailAsId": {
+                    "description": "Whether to use the email field as a unique identifier",
+                    "type": "boolean",
+                    "default": true,
+                    "examples": [true, false]
+                },
+                "userLookupTable": {
+                    "description": "Path of user lookup table as text file in format <unique user ID> <system user>. Example table given in `usertable.txt.stub`",
+                    "type": "string",
+                    "examples": [
+                        "/etc/carta/userlookup.txt"
+                    ]
+                }
+            }
+        },
+        "ldapAuthProvider": {
+            "type": "object",
+            "title": "LDAP AuthProvider",
+            "description": "Authentication configuration when using LDAP-based authentication",
+            "additionalProperties": false,
+            "required": [
+                "publicKeyLocation",
+                "privateKeyLocation",
+                "issuer",
+                "ldapOptions"
+            ],
+            "properties": {
+                "publicKeyLocation": {
+                    "description": "Path to public key (in PEM format) used for verifying JWTs",
+                    "type": "string",
+                    "examples": [
+                        "/etc/carta/carta_public.pem"
+                    ]
+                },
+                "privateKeyLocation": {
+                    "description": "Path to private key (in PEM format) used for signing JWTs",
+                    "type": "string",
+                    "examples": [
+                        "/etc/carta/carta_private.pem"
+                    ]
+                },
+                "keyAlgorithm": {
+                    "$ref": "#/definitions/keyAlgorithm"
+                },
+                "issuer": {
+                    "description": "Issuer field for JWT",
+                    "type": "string",
+                    "examples": [
+                        "my-carta-server"
+                    ]
+                },
+                "refreshTokenAge": {
+                    "description": "Lifetime of refresh tokens",
+                    "type": "string",
+                    "default": "1w",
+                    "examples": [
+                        "1w",
+                        "15h",
+                        "2d"
+                    ]
+                },
+                "accessTokenAge": {
+                    "description": "Lifetime of access tokens",
+                    "type": "string",
+                    "default": "15m",
+                    "examples": [
+                        "90s",
+                        "1h",
+                        "15m"
+                    ]
+                },
+                "ldapOptions": {
+                    "description": "Options to path through to the LDAP auth instance",
+                    "additionalProperties": false,
+                    "required": [
+                        "url",
+                        "searchBase"
+                    ],
+                    "properties": {
+                        "url": {
+                            "description": "LDAP connection URI",
+                            "type": "string",
+                            "format": "uri",
+                            "pattern": "^ldaps?://"
+                        },
+                        "searchBase": {
+                            "description": "Search base",
+                            "type": "string"
+                        },
+                        "searchFilter": {
+                            "description": "Search filter to use",
+                            "type": "string",
+                            "default": "uid={{username}}"
+                        },
+                        "starttls": {
+                            "description": "Whether to start TLS when making a connection",
+                            "type": "boolean",
+                            "default": true
+                        },
+                        "reconnect": {
+                            "description": "Whether to automatically reconnect to LDAP",
+                            "type": "boolean",
+                            "default": true
+                        }
+                    }
+                }
+            }
+        },
+        "externalAuthProvider": {
+            "type": "object",
+            "title": "External AuthProvider",
+            "description": "OAuth2-compatible authentication configuration",
+            "additionalProperties": false,
+            "required": [
+                "issuers",
+                "publicKeyLocation",
+                "tokenRefreshAddress",
+                "uniqueField"
+            ],
+            "properties": {
+                "issuers": {
+                    "description": "List of valid issuers in JWT field",
+                    "type": "array",
+                    "examples": [
+                        [
+                            "my-auth-server",
+                            "my-other-auth-server"
+                        ]
+                    ],
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "publicKeyLocation": {
+                    "description": "Path to public key (in PEM format) used for verifying JWTs",
+                    "type": "string",
+                    "examples": [
+                        "/etc/carta/my_auth_server_public_key.pem"
+                    ]
+                },
+                "keyAlgorithm": {
+                    "$ref": "#/definitions/keyAlgorithm"
+                },
+                "uniqueField": {
+                    "description": "Name of unique field to use as user ID",
+                    "type": "string",
+                    "examples": [
+                        "user",
+                        "sub",
+                        "user_id"
+                    ]
+                },
+                "tokenRefreshAddress": {
+                    "description": "Route for refreshing access tokens",
+                    "type": "string",
+                    "format": "uri",
+                    "pattern": "^https?://"
+                },
+                "logoutAddress": {
+                    "description": "Route for logging out",
+                    "type": "string",
+                    "format": "uri",
+                    "pattern": "^https?://"
+                },
+                "userLookupTable": {
+                    "description": "Path of user lookup table as text file in format <unique user ID> <system user>. If no user lookup is needed, this should be omitted. Example table given in `usertable.txt.stub`",
+                    "type": "string",
+                    "examples": [
+                        "/etc/carta/userlookup.txt"
+                    ]
+                }
+            }
+        }
+    },
+    "additionalProperties": false,
+    "properties": {
+        "$schema": {
+            "type": "string",
+            "description": "Reference to configuration schema file"
+        },
+        "authProviders": {
+            "type": "object",
+            "title": "AuthProviders",
+            "description": "Configuration option for authentication providers",
+            "properties": {
+                "google": {
+                    "description": "Google AuthProvider",
+                    "$ref": "#/definitions/googleAuthProvider"
+                },
+                "ldap": {
+                    "description": "LDAP AuthProvider",
+                    "$ref": "#/definitions/ldapAuthProvider"
+                },
+                "external": {
+                    "description": "External AuthProvider",
+                    "$ref": "#/definitions/externalAuthProvider"
+                }
+            }
+        },
+        "database": {
+            "type": "object",
+            "description": "Database configuration",
+            "additionalProperties": false,
+            "required": [
+                "uri"
+            ],
+            "properties": {
+                "uri": {
+                    "description": "MongoDB connection URI used to connect to a MongoDB deployment",
+                    "type": "string",
+                    "format": "uri",
+                    "pattern": "^mongodb://",
+                    "default": "mongodb://localhost:27017"
+                },
+                "databaseName": {
+                    "description": "Default database to connect to",
+                    "type": "string",
+                    "default": "CARTA"
+                }
+            }
+        },
+        "serverPort": {
+            "description": "Port to listen on. It is advised to listen on a port other than 80 or 443, behind an SSL proxy",
+            "type": "integer",
+            "default": 8000,
+            "minimum": 0,
+            "maximum": 65535
+        },
+        "serverAddress": {
+            "description": "Public-facing server address",
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https?://"
+        },
+        "dashboardAddress": {
+            "description": "Optional parameter for explicitly configuring a custom dashboard address",
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https?://"
+        },
+        "apiAddress": {
+            "description": "Optional parameter for explicitly configuring a custom API base address",
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https?://"
+        },
+        "frontendPath": {
+            "description": "Path to the built frontend folder",
+            "type": "string",
+            "default": "/etc/carta/frontend"
+        },
+        "backendPorts": {
+            "description": "Port range to use for the CARTA backend process",
+            "additionalProperties": false,
+            "default": {
+                "min": 3003,
+                "max": 3500
+            },
+            "required": [
+                "min",
+                "max"
+            ],
+            "properties": {
+                "min": {
+                    "minimum": 1024,
+                    "maximum": 65535,
+                    "type": "integer"
+                },
+                "max": {
+                    "minimum": 1024,
+                    "maximum": 65535,
+                    "type": "integer"
+                }
+            }
+        },
+        "processCommand": {
+            "description": "Path to CARTA backend executable",
+            "type": "string",
+            "examples": [
+                "/usr/local/bin/carta_backend"
+            ]
+        },
+        "killCommand": {
+            "description": "Path to CARTA kill script",
+            "type": "string",
+            "examples": [
+                "/usr/local/bin/carta_kill_script.sh"
+            ]
+        },
+        "rootFolderTemplate": {
+            "description": "Top-level path of directories accessible to CARTA. The `{username}` placeholder will be replaced with the username",
+            "type": "string",
+            "examples": [
+                "/home/{username}",
+                "/"
+            ]
+        },
+        "baseFolderTemplate": {
+            "description": "Starting directory of CARTA. Must be a subfolder of rootFolderTemplate. The `{username}` placeholder will be replaced with the username",
+            "type": "string",
+            "examples": [
+                "/home/{username}/CARTA",
+                "/data",
+                "/"
+            ]
+        },
+        "logFileTemplate": {
+            "description": "Location of log file. The `{username}`, `{pid}` and `{datetime}` placeholders will be replaced with the username, process ID. and dat/time formatted as `YYYYMMDD.h_mm_ss` respectively",
+            "type": "string",
+            "default": "/var/log/carta/{username}_{datetime}_{pid}.log",
+            "examples": [
+                "/var/log/carta/{username}_{pid}.log",
+                "/home/{username}/CARTA/log/{datatime}_{pid}.log"
+            ]
+        },
+        "additionalArgs": {
+            "description": "Additional arguments to be passed to the backend process, defined as an array of strings. See backend documentation for details.",
+            "type": "array",
+            "examples": [
+                [
+                    "-threads",
+                    "4",
+                    "-omp_threads",
+                    "4",
+                    "-init_exit_after",
+                    "30",
+                    "-exit_after",
+                    "0"
+                ]
+            ],
+            "items": {
+                "type": "string"
+            }
+        },
+        "startDelay": {
+            "description": "Wait time before checking whether started process is still running and sending a response to the connecting client",
+            "type": "integer",
+            "minimum": 0,
+            "default": 250
+        }
+    }
+}

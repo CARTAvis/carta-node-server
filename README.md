@@ -1,4 +1,8 @@
-# CARTA Server (NodeJS version)
+# CARTA Server
+[![carta version](https://img.shields.io/badge/CARTA%20Version-1.4.0--alpha--1-red)](https://github.com/CARTAvis/carta/releases)
+[![npm version](http://img.shields.io/npm/v/carta-node-server.svg?style=flat)](https://npmjs.org/package/carta-node-server "View this project on npm")
+![last commit](https://img.shields.io/github/last-commit/CARTAvis/carta-node-server)
+![commit activity](https://img.shields.io/github/commit-activity/m/CARTAvis/carta-node-server)
 
 #### Work in progress, documentation still under construction
 
@@ -12,7 +16,7 @@ To allow the server to serve CARTA sessions, you must give it access to an execu
 
 By default, the server runs on port 8000. It should be run behind a proxy, so that it can be accessed via HTTP and HTTPS. 
 
-MongoDB is required for storing user preferences, layouts and (in the near future) server metrics. You also need a working NodeJS installation with NPM. Use `npm install` to install all Node dependencies.
+MongoDB is required for storing user preferences, layouts and (in the near future) server metrics. You also need a working [NodeJS LTS](https://github.com/nvm-sh/nvm#long-term-support) installation with NPM. Use `npm install` to install all Node dependencies.
 
 ## Authentication support
 
@@ -28,14 +32,13 @@ openssl rsa -in carta_private.pem -outform PEM -pubout -out carta_public.pem
 ```
 
 ## Server Configuration
+Server configuration is handled by a configuration file in JSON format, adhering to the [CARTA config schema](config/config_schema.json). Additional details can be found in the auto-generated [config documentation](docs/config_schema.html) or the [example config](config/example_config.json). By default, the server assumes the config file is located at `/etc/carta/config.json`, but you can change this with the `--config` or `-c` command line argument when running the server. 
 
-Server configuration is handled by the configuration file `config/config.ts`. Detailed comments on each of the server options are given in the [example config](config/config.ts.stub). For external authentication systems, you may need to translate a unique ID (such as email or username) from the authenticated user information to the system user. You can do this by providing a [user lookup table](config/usertable.txt.stub), which is watched by the server and reloaded whenever it is updated.
-
-If you use Google authentication, you need to uncomment some lines in the `<head>` section of the [public/index.html](public/index.html) file.
+For external authentication systems, you may need to translate a unique ID (such as email or username) from the authenticated user information to the system user. You can do this by providing a [user lookup table](config/usertable.txt.stub), which is watched by the server and reloaded whenever it is updated.
 
 ## System Configuration
 
-The user under which the CARTA server is running (assumed to be `carta`) must be given permission to use `sudo` to start `carta_backend` processes as any authenticated user and stop running `carta_backend` processes belonging to authenticated users. We provide a [kill script](scripts/kill_script.sh) which is only able to kill processes matching the name `carta_backend`. This makes it possible to restrict what processes the `carta` user is permitted to kill.
+The user under which the CARTA server is running (assumed to be `carta`) must be given permission to use `sudo` to start `carta_backend` processes as any authenticated user and stop running `carta_backend` processes belonging to authenticated users. We provide a [kill script](scripts/carta_kill_script.sh) which is only able to kill processes matching the name `carta_backend`. This makes it possible to restrict what processes the `carta` user is permitted to kill.
 
 To provide the `carta` user with these privileges, you must make modifications to the [sudoers configuration](https://www.sudo.ws/man/1.9.0/sudoers.man.html). An [example sudoers config](config/example_sudoers_conf.stub) is provided. This example allows the `carta` user to run `carta_backend` only as users belonging to a specific group (assumed to be `carta-users`), in order to deny access to unauthorized accounts.
 
@@ -51,10 +54,13 @@ By default, the server attempts to write log files to the `/var/log/carta` direc
 
 - Build [carta-backend](https://github.com/CARTAvis/carta-backend) using the `dev` branch (or create the appropriate container)
 - Configure and build [carta-frontend](https://github.com/CARTAvis/carta-frontend) using the `angus/database_service` branch
-- Edit the server configuration file
-- Perform system configuration
+- Edit the server configuration file at `/etc/carta/config.json`
+- Perform system configuration:
+    - Ensure `/var/log/carta` exists and is writeable by the appropriate user    
+    - Adjust the sudoers configuration
+    - Redirect traffic to port 8000
 
-After you have built the frontend and backend and edited the server configuration, you can start the server with `npm run start`. You can use a utility such as [forever](https://github.com/foreversd/forever) to keep the server running by restarting it automatically.
+After you have built the frontend and backend and edited the server configuration, you can start the server with `npm run start`. You can use a utility such as [forever](https://github.com/foreversd/forever) or [pm2](https://pm2.keymetrics.io/) to keep the server running by restarting it automatically.
 
 ## Getting help
 

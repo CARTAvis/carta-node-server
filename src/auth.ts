@@ -7,18 +7,8 @@ import {OAuth2Client} from "google-auth-library";
 import {VerifyOptions} from "jsonwebtoken";
 import ms = require('ms');
 import {noCache} from "./util";
-
-
-export type RequestHandler = (req: express.Request, res: express.Response) => void;
-export type AsyncRequestHandler = (req: express.Request, res: express.Response, next: express.NextFunction) => void;
-export type AuthenticatedRequest = express.Request & { username?: string };
-
-// Token verifier function
-type Verifier = (cookieString: string) => any;
-// Map for looking up system user name from authenticated user name
-type UserMap = Map<string, string>;
-
-const config = require("../config/config.ts");
+import {RequestHandler, AsyncRequestHandler, AuthenticatedRequest, Verifier, UserMap, CartaServerConfig, CartaLdapAuthConfig} from "./types";
+import ServerConfig from "./config";
 
 // maps JWT claim "iss" to a token verifier
 const tokenVerifiers = new Map<string, Verifier>();
@@ -62,7 +52,7 @@ function readUserTable(issuer: string | string[], filename: string) {
 }
 
 
-function generateLocalVerifier(authConf: { issuer: string, keyAlgorithm: jwt.Algorithm, publicKeyLocation: string }) {
+function generateLocalVerifier(authConf: CartaLdapAuthConfig) {
     const publicKey = fs.readFileSync(authConf.publicKeyLocation);
     tokenVerifiers.set(authConf.issuer, (cookieString) => {
         const payload: any = jwt.verify(cookieString, publicKey, {algorithm: authConf.keyAlgorithm} as VerifyOptions);
@@ -75,18 +65,18 @@ function generateLocalVerifier(authConf: { issuer: string, keyAlgorithm: jwt.Alg
 }
 
 // Local providers
-if (config.authProviders.ldap) {
-    generateLocalVerifier(config.authProviders.ldap);
+if (ServerConfig.authProviders.ldap) {
+    generateLocalVerifier(ServerConfig.authProviders.ldap);
 }
 
-if (config.authProviders.google) {
-    const authConf = config.authProviders.google;
+if (ServerConfig.authProviders.google) {
+    const authConf = ServerConfig.authProviders.google;
     const validIssuers = ["accounts.google.com", "https://accounts.google.com"]
-    const googleAuthClient = new OAuth2Client(authConf.googleClientId);
+    const googleAuthClient = new OAuth2Client(authConf.clientId);
     const verifier = async (cookieString: string) => {
         const ticket = await googleAuthClient.verifyIdToken({
             idToken: cookieString,
-            audience: authConf.googleClientId
+            audience: authConf.clientId
         });
         const payload = ticket.getPayload();
 
@@ -100,7 +90,7 @@ if (config.authProviders.google) {
         }
 
         // check that domain is valid
-        if (authConf.validDomains && authConf.validDomains.length && !authConf.validDomains.includes(payload.hd)) {
+        if (authConf.validDomain && authConf.validDomain !== payload.hd) {
             console.log(`Google auth rejected due to incorrect domain: ${payload.hd}`);
             return undefined;
         }
@@ -118,8 +108,8 @@ if (config.authProviders.google) {
     }
 }
 
-if (config.authProviders.external) {
-    const authConf = config.authProviders.external;
+if (ServerConfig.authProviders.external) {
+    const authConf = ServerConfig.authProviders.external;
     const publicKey = fs.readFileSync(authConf.publicKeyLocation);
     const verifier = (cookieString: string) => {
         const payload: any = jwt.verify(cookieString, publicKey, {algorithm: authConf.keyAlgorithm} as VerifyOptions);
@@ -138,9 +128,10 @@ if (config.authProviders.external) {
         tokenVerifiers.set(iss, verifier);
     }
 
-    if (authConf.userLookupTable) {
-        readUserTable(authConf.issuers, authConf.userLookupTable);
-        fs.watchFile(authConf.userLookupTable, () => readUserTable(authConf.issuers, authConf.userLookupTable));
+    const tablePath = authConf.userLookupTable;
+    if (tablePath) {
+        readUserTable(authConf.issuers, tablePath);
+        fs.watchFile(tablePath, () => readUserTable(authConf.issuers, tablePath));
     }
 }
 
@@ -194,8 +185,8 @@ export async function authGuard(req: AuthenticatedRequest, res: express.Response
 let loginHandler: RequestHandler;
 let refreshHandler: AsyncRequestHandler;
 
-if (config.authProviders.ldap) {
-    const authConf = config.authProviders.ldap;
+if (ServerConfig.authProviders.ldap) {
+    const authConf = ServerConfig.authProviders.ldap;
     const privateKey = fs.readFileSync(authConf.privateKeyLocation);
 
     const ldap = new LdapAuth(authConf.ldapOptions);
@@ -276,7 +267,7 @@ function logoutHandler(req: express.Request, res: express.Response) {
     return res.json({success: true});
 }
 
-function generateLocalRefreshHandler(authConf: { issuer: string, keyAlgorithm: jwt.Algorithm, privateKeyLocation: string, accessTokenAge: string }) {
+function generateLocalRefreshHandler(authConf: CartaLdapAuthConfig) {
     const privateKey = fs.readFileSync(authConf.privateKeyLocation);
 
     return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -310,8 +301,8 @@ function generateLocalRefreshHandler(authConf: { issuer: string, keyAlgorithm: j
     }
 }
 
-if (config.authProviders.ldap) {
-    refreshHandler = generateLocalRefreshHandler(config.authProviders.ldap);
+if (ServerConfig.authProviders.ldap) {
+    refreshHandler = generateLocalRefreshHandler(ServerConfig.authProviders.ldap);
 } else {
     refreshHandler = (req, res) => {
         throw {statusCode: 501, message: "Token refresh not implemented"};

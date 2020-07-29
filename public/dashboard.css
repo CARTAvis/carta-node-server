@@ -92,13 +92,10 @@
 }
 
 .sso-buttons {
+	vertical-align:middle;
+	text-align:center;
 	display: flex;
 	margin-top: 40px;
-}
-
-.sso-buttons > div {
-	flex: 1 1 auto;
-	margin-right: 5px;
 }
 
 body {

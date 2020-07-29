@@ -63,7 +63,8 @@
                 "useEmailAsId": {
                     "description": "Whether to use the email field as a unique identifier",
                     "type": "boolean",
-                    "default": true
+                    "default": true,
+                    "examples": [true, false]
                 },
                 "userLookupTable": {
                     "description": "Path of user lookup table as text file in format <unique user ID> <system user>. Example table given in `usertable.txt.stub`",

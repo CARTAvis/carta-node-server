@@ -4,6 +4,7 @@ import * as url from "url";
 import * as fs from "fs";
 import * as moment from "moment";
 import * as querystring from "querystring";
+import {v4} from "uuid";
 import * as io from "@pm2/io";
 import {ChildProcess, spawn, spawnSync} from "child_process";
 import {IncomingMessage} from "http";
@@ -12,15 +13,15 @@ import {authGuard, getUser, verifyToken} from "./auth";
 import {AuthenticatedRequest} from "./types";
 import ServerConfig from "./config";
 
-const processMap = new Map<string, { process: ChildProcess, port: number }>();
+const processMap = new Map<string, { process: ChildProcess, port: number, headerToken: string }>();
 
 const userProcessesMetric = io.metric({
     name: 'Active Backend Processes',
     id: 'app/realtime/backend',
 });
 
-function setProcess(username: string, port: number, process: ChildProcess) {
-    processMap.set(username, {port, process});
+function setProcess(username: string, port: number, headerToken: string, process: ChildProcess) {
+    processMap.set(username, {port, process, headerToken});
     userProcessesMetric.set(processMap.size);
 }
 
@@ -116,6 +117,7 @@ async function startServer(username: string) {
         }
 
         let args = [
+            "--preserve-env=CARTA_AUTH_TOKEN",
             "-u", `${username}`,
             ServerConfig.processCommand,
             "-port", `${port}`,
@@ -127,8 +129,9 @@ async function startServer(username: string) {
             args = args.concat(ServerConfig.additionalArgs);
         }
 
-        const child = spawn("sudo", args);
-        let logLocation: string;
+        const headerToken = v4();
+        const child = spawn("sudo", args, {env: {CARTA_AUTH_TOKEN: headerToken}});
+        let logLocation;
 
         if (ServerConfig.logFileTemplate) {
             logLocation = ServerConfig.logFileTemplate
@@ -145,6 +148,9 @@ async function startServer(username: string) {
             }
         } else {
             logLocation = "stdout";
+            child.stdout.on('data', function(data) {
+                console.log(data.toString());
+            });
         }
 
         child.on("exit", code => {
@@ -159,7 +165,7 @@ async function startServer(username: string) {
             throw {statusCode: 500, message: `Problem starting process for user ${username}`};
         } else {
             console.log(`Started process with PID ${child.pid} for user ${username} on port ${port}. Outputting to ${logLocation}`);
-            setProcess(username, port, child);
+            setProcess(username, port, headerToken, child);
             return;
         }
     } catch (e) {
@@ -241,6 +247,7 @@ export const createUpgradeHandler = (server: httpProxy) => async (req: IncomingM
 
         if (existingProcess && !existingProcess.process.signalCode) {
             console.log(`Redirecting to backend process for ${username} (port ${existingProcess.port})`);
+            req.headers["carta-auth-token"] = existingProcess.headerToken;
             return server.ws(req, socket, head, {target: {host: "localhost", port: existingProcess.port}});
         } else {
             console.log(`Backend process could not be started`);

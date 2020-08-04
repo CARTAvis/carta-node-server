@@ -16,6 +16,7 @@
     "license": "ISC",
     "dependencies": {
         "@pm2/io": "^4.3.5",
+        "@types/uuid": "^8.0.0",
         "ajv": "^6.12.3",
         "body-parser": "^1.19.0",
         "chalk": "^4.1.0",
@@ -34,6 +35,7 @@
         "ms": "^2.1.2",
         "pug": "^3.0.0",
         "userid": "^1.0.0-beta.6",
+        "uuid": "^8.3.0",
         "yargs": "^15.4.1"
     },
     "devDependencies": {

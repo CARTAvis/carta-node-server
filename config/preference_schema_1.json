@@ -1,13 +1,14 @@
 {
+    "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "Preferences",
     "description": "Schema for CARTA Preferences (Version 1)",
+    "$id": "carta_preferences_1",
     "required": [
-        "version",
-        "username"
+        "version"
     ],
     "properties": {
         "version": {
-            "type": "number",
+            "type": "integer",
             "minimum": 1
         },
         "username": {
@@ -64,14 +65,12 @@
             ]
         },
         "wcsMatchingType": {
-            "type": "number",
-            "multipleOf": 1.0,
+            "type": "integer",
             "minimum": 0,
             "maximum": 3
         },
         "scaling": {
-            "type": "number",
-            "multipleOf": 1.0,
+            "type": "integer",
             "minimum": 0,
             "maximum": 7
         },
@@ -80,10 +79,8 @@
         },
         "percentile": {
             "type": "number",
-            "maximum": 100,
-            "exclusiveMaximum": true,
-            "minimum": 0,
-            "exclusiveMinimum": true
+            "exclusiveMaximum": 100,
+            "exclusiveMinimum": 0
         },
         "scalingAlpha": {
             "type": "number",
@@ -91,8 +88,7 @@
         },
         "scalingGamma": {
             "type": "number",
-            "minimum": 0,
-            "exclusiveMinimum": true
+            "exclusiveMinimum": 0
         },
         "nanColorHex": {
             "type": "string",
@@ -113,19 +109,16 @@
             ]
         },
         "contourSmoothingMode": {
-            "type": "number",
-            "multipleOf": 1.0,
+            "type": "integer",
             "minimum": 0,
             "maximum": 2
         },
         "contourSmoothingFactor": {
-            "type": "number",
-            "multipleOf": 1.0,
+            "type": "integer",
             "minimum": 0
         },
         "contourNumLevels": {
-            "type": "number",
-            "multipleOf": 1.0,
+            "type": "integer",
             "minimum": 1
         },
         "contourThickness": {
@@ -143,8 +136,7 @@
             "type": "string"
         },
         "astColor": {
-            "type": "number",
-            "multipleOf": 1.0,
+            "type": "integer",
             "minimum": 0
         },
         "astGridVisible": {
@@ -187,13 +179,11 @@
             "minimum": 0
         },
         "regionDashLength": {
-            "type": "number",
-            "multipleOf": 1.0,
+            "type": "integer",
             "minimum": 0
         },
         "regionType": {
-            "type": "number",
-            "multipleOf": 1.0,
+            "type": "integer",
             "minimum": 0,
             "maximum": 6
         },
@@ -205,47 +195,43 @@
             ]
         },
         "imageCompressionQuality": {
-            "type": "number",
-            "multipleOf": 1.0,
+            "type": "integer",
             "minimum": 4,
             "maximum": 32
         },
         "animationCompressionQuality": {
-            "type": "number",
-            "multipleOf": 1.0,
+            "type": "integer",
             "minimum": 4,
             "maximum": 32
         },
         "GPUTileCache": {
-            "type": "number",
+            "type": "integer",
             "multipleOf": 128,
             "minimum": 512
         },
         "systemTileCache": {
-            "type": "number",
+            "type": "integer",
             "multipleOf": 128,
             "minimum": 1024
         },
         "contourDecimation": {
-            "type": "number",
-            "multipleOf": 1.0,
+            "type": "integer",
             "minimum": 1,
             "maximum": 32
         },
         "contourCompressionLevel": {
-            "type": "number",
-            "multipleOf": 1.0,
+            "type": "integer",
             "minimum": 0,
             "maximum": 19
         },
         "contourChunkSize": {
-            "type": "number",
+            "type": "integer",
             "multipleOf": 25000,
             "minimum": 25000,
             "maximum": 1000000
         },
         "contourControlMapWidth": {
-            "type": "number",
+            "type": "integer",
             "multipleOf": 128,
             "minimum": 128,
             "maximum": 1024
@@ -257,8 +243,7 @@
             "type": "boolean"
         },
         "stopAnimationPlayback": {
-            "type": "number",
-            "multipleOf": 1.0,
+            "type": "integer",
             "minimum": 5,
             "maximum": 30
         }

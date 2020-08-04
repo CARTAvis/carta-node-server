@@ -4,9 +4,15 @@ import {authGuard} from "./auth";
 import {noCache} from "./util";
 import {AuthenticatedRequest} from "./types";
 import ServerConfig from "./config";
+import * as Ajv from "ajv";
 
 const PREFERENCE_SCHEMA_VERSION = 1;
+const LAYOUT_SCHEMA_VERSION = 2;
 const preferenceSchema = require("../config/preference_schema_1.json");
+const layoutSchema = require("../config/layout_schema_2.json");
+const ajv = new Ajv({useDefaults: true});
+const validatePreferences = ajv.compile(preferenceSchema);
+const validateLayout = ajv.compile(layoutSchema);
 
 let client: MongoClient;
 let preferenceCollection: Collection;
@@ -19,7 +25,7 @@ export async function initDB() {
             // Create collection if it doesn't exist
             preferenceCollection = await db.createCollection("preferences");
             // Update with the latest schema
-            await db.command({collMod: "preferences", validator: {$jsonSchema: preferenceSchema}});
+            await db.command({collMod: "preferences", validator: {}, validationLevel: "off"});
             const hasIndex = await preferenceCollection.indexExists("username");
             if (!hasIndex) {
                 await preferenceCollection.createIndex({username: 1}, {name: "username", unique: true, dropDups: true});
@@ -75,6 +81,12 @@ async function handleSetPreferences(req: AuthenticatedRequest, res: express.Resp
     }
 
     update.version = PREFERENCE_SCHEMA_VERSION;
+
+    const validUpdate = validatePreferences(update);
+    if (!validUpdate) {
+        console.log(validatePreferences.errors);
+        return next({statusCode: 400, message: "Malformed preference update"});
+    }
 
     try {
         const updateResult = await preferenceCollection.updateOne({username: req.username}, {$set: update}, {upsert: true});

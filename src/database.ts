@@ -1,5 +1,5 @@
 import * as express from "express";
-import {Collection, MongoClient} from "mongodb";
+import {Collection, Db, MongoClient} from "mongodb";
 import {authGuard} from "./auth";
 import {noCache} from "./util";
 import {AuthenticatedRequest} from "./types";
@@ -26,14 +26,23 @@ async function updateUsernameIndex(collection: Collection, unique: boolean) {
     }
 }
 
+async function createOrGetCollection(db: Db, collectionName: string) {
+    const collectionExists = await db.listCollections({name: collectionName}, {nameOnly: true}).hasNext();
+    if (collectionExists) {
+        return db.collection(collectionName);
+    } else {
+        console.log(`Creating collection ${collectionName}`);
+        return db.createCollection(collectionName);
+    }
+}
+
 export async function initDB() {
     if (ServerConfig.database?.uri && ServerConfig.database?.databaseName) {
         try {
             client = await MongoClient.connect(ServerConfig.database.uri, {useUnifiedTopology: true});
             const db = await client.db(ServerConfig.database.databaseName);
-            // Create collections if they don't exist
-            layoutsCollection = await db.createCollection("layouts");
-            preferenceCollection = await db.createCollection("preferences");
+            layoutsCollection = await createOrGetCollection(db, "layouts");
+            preferenceCollection = await createOrGetCollection(db, "preferences");
             // Remove any existing validation in preferences collection
             await db.command({collMod: "preferences", validator: {}, validationLevel: "off"});
             // Update collection indices if necessary

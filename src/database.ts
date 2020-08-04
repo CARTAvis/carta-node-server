@@ -16,21 +16,29 @@ const validateLayout = ajv.compile(layoutSchema);
 
 let client: MongoClient;
 let preferenceCollection: Collection;
+let layoutsCollection: Collection;
+
+async function updateUsernameIndex(collection: Collection, unique: boolean) {
+    const hasIndex = await collection.indexExists("username");
+    if (!hasIndex) {
+        await collection.createIndex({username: 1}, {name: "username", unique, dropDups: unique});
+        console.log(`Created username index for collection ${collection.collectionName}`);
+    }
+}
 
 export async function initDB() {
     if (ServerConfig.database?.uri && ServerConfig.database?.databaseName) {
         try {
             client = await MongoClient.connect(ServerConfig.database.uri, {useUnifiedTopology: true});
             const db = await client.db(ServerConfig.database.databaseName);
-            // Create collection if it doesn't exist
+            // Create collections if they don't exist
+            layoutsCollection = await db.createCollection("layouts");
             preferenceCollection = await db.createCollection("preferences");
-            // Update with the latest schema
+            // Remove any existing validation in preferences collection
             await db.command({collMod: "preferences", validator: {}, validationLevel: "off"});
-            const hasIndex = await preferenceCollection.indexExists("username");
-            if (!hasIndex) {
-                await preferenceCollection.createIndex({username: 1}, {name: "username", unique: true, dropDups: true});
-                console.log(`Created username index for collection ${preferenceCollection.collectionName}`);
-            }
+            // Update collection indices if necessary
+            await updateUsernameIndex(layoutsCollection, false);
+            await updateUsernameIndex(preferenceCollection, true);
             console.log(`Connected to server ${ServerConfig.database.uri} and database ${ServerConfig.database.databaseName}`);
         } catch (err) {
             console.log(err);
@@ -134,8 +142,94 @@ async function handleClearPreferences(req: AuthenticatedRequest, res: express.Re
     }
 }
 
+async function handleGetLayouts(req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) {
+    if (!req.username) {
+        return next({statusCode: 403, message: "Invalid username"});
+    }
+
+    if (!layoutsCollection) {
+        return next({statusCode: 501, message: "Database not configured"});
+    }
+
+    try {
+        const layoutList = await layoutsCollection.find({username: req.username}, {projection: {_id: 0, username: 0}}).toArray();
+        const layouts = {} as any;
+        for (const entry of layoutList) {
+            if (entry.name && entry.layout) {
+                layouts[entry.name] = entry.layout;
+            }
+        }
+        res.json({success: true, layouts});
+    } catch (err) {
+        console.log(err);
+        return next({statusCode: 500, message: "Problem retrieving layouts"});
+    }
+}
+
+async function handleSetLayout(req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) {
+    if (!req.username) {
+        return next({statusCode: 403, message: "Invalid username"});
+    }
+
+    if (!layoutsCollection) {
+        return next({statusCode: 501, message: "Database not configured"});
+    }
+
+    const layoutName = req.body?.layoutName;
+    const layout = req.body?.layout;
+    // Check for malformed update
+    if (!layoutName || !layout || layout.layoutVersion !== LAYOUT_SCHEMA_VERSION) {
+        return next({statusCode: 400, message: "Malformed layout update"});
+    }
+
+    const validUpdate = validateLayout(layout);
+    if (!validUpdate) {
+        console.log(validateLayout.errors);
+        return next({statusCode: 400, message: "Malformed layout update"});
+    }
+
+    try {
+        const updateResult = await layoutsCollection.updateOne({username: req.username, name: layoutName, layout}, {$set: {layout}}, {upsert: true});
+        if (updateResult.result?.ok) {
+            res.json({success: true});
+        } else {
+            return next({statusCode: 500, message: "Problem updating layout"});
+        }
+    } catch (err) {
+        console.log(err.errmsg);
+        return next({statusCode: 500, message: err.errmsg});
+    }
+}
+
+async function handleClearLayout(req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) {
+    if (!req.username) {
+        return next({statusCode: 403, message: "Invalid username"});
+    }
+
+    if (!layoutsCollection) {
+        return next({statusCode: 501, message: "Database not configured"});
+    }
+
+    const layoutName = req.body?.layoutName;
+    try {
+        const deleteResult = await layoutsCollection.deleteOne({username: req.username, name: layoutName});
+        if (deleteResult.result?.ok) {
+            res.json({success: true});
+        } else {
+            return next({statusCode: 500, message: "Problem clearing layout"});
+        }
+    } catch (err) {
+        console.log(err);
+        return next({statusCode: 500, message: "Problem clearing layout"});
+    }
+}
+
 export const databaseRouter = express.Router();
 
 databaseRouter.get("/preferences", authGuard, noCache, handleGetPreferences);
-databaseRouter.delete("/preferences", authGuard, noCache, handleClearPreferences);
 databaseRouter.put("/preferences", authGuard, noCache, handleSetPreferences);
+databaseRouter.delete("/preferences", authGuard, noCache, handleClearPreferences);
+
+databaseRouter.get("/layouts", authGuard, noCache, handleGetLayouts);
+databaseRouter.put("/layout", authGuard, noCache, handleSetLayout);
+databaseRouter.delete("/layout", authGuard, noCache, handleClearLayout);

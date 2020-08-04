@@ -71,4 +71,4 @@ If you encounter a problem with the server or documentation, please submit an is
 Still to be implemented:
 - Better error feedback
 - More flexibility with external auth
-- API endpoints for saving user layouts (not currently implemented)
+- Integration with a CARTA frontend npm package

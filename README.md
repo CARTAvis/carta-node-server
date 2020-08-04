@@ -12,7 +12,7 @@ The CARTA server provides a simple dashboard which authenticates users and allow
 
 ## Dependencies
 
-To allow the server to serve CARTA sessions, you must give it access to an executable CARTA backend, which can be either a compiled executable or a container. You must also build the CARTA frontend, and adjust the server configuration to point to it. You should use the `dev` branch of [`carta-backend`](https://github.com/CARTAvis/carta-backend). and the `angus/database_service` branch of [`carta-frontend`](https://github.com/CARTAvis/carta-frontend).
+To allow the server to serve CARTA sessions, you must give it access to an executable CARTA backend, which can be either a compiled executable or a container. You must also build the CARTA frontend, and adjust the server configuration to point to it. You should use the `dev` branch of [`carta-backend`](https://github.com/CARTAvis/carta-backend). and the `dev` branch of [`carta-frontend`](https://github.com/CARTAvis/carta-frontend).
 
 By default, the server runs on port 8000. It should be run behind a proxy, so that it can be accessed via HTTP and HTTPS. 
 
@@ -71,4 +71,4 @@ If you encounter a problem with the server or documentation, please submit an is
 Still to be implemented:
 - Better error feedback
 - More flexibility with external auth
-- API endpoints for saving user layouts (not currently implemented)
+- Integration with a CARTA frontend npm package

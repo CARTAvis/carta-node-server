@@ -18,7 +18,7 @@
         "@pm2/io": "^4.3.5",
         "ajv": "^6.12.3",
         "body-parser": "^1.19.0",
-        "carta-frontend": "^1.4.0-alpha.2",
+        "carta-frontend": "^1.4.0-alpha.3",
         "chalk": "^4.1.0",
         "compression": "^1.7.4",
         "cookie-parser": "^1.4.5",

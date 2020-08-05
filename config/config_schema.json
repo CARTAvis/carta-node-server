@@ -310,9 +310,8 @@
             "pattern": "^https?://"
         },
         "frontendPath": {
-            "description": "Path to the built frontend folder",
-            "type": "string",
-            "default": "/etc/carta/frontend"
+            "description": "Path to the built frontend folder. If no path is provided, the packaged version will be used",
+            "type": "string"
         },
         "backendPorts": {
             "description": "Port range to use for the CARTA backend process",

@@ -12,7 +12,7 @@ The CARTA server provides a simple dashboard which authenticates users and allow
 
 ## Dependencies
 
-To allow the server to serve CARTA sessions, you must give it access to an executable CARTA backend, which can be either a compiled executable or a container. You must also build the CARTA frontend, and adjust the server configuration to point to it. You should use the `dev` branch of [`carta-backend`](https://github.com/CARTAvis/carta-backend). and the `dev` branch of [`carta-frontend`](https://github.com/CARTAvis/carta-frontend).
+To allow the server to serve CARTA sessions, you must give it access to an executable CARTA backend, which can be either a compiled executable or a container. If you want to use a non-standard version of the CARTA frontend, you must also build it, and adjust the server configuration to point to it. You should use the `dev` branch of [`carta-backend`](https://github.com/CARTAvis/carta-backend).
 
 By default, the server runs on port 8000. It should be run behind a proxy, so that it can be accessed via HTTP and HTTPS. 
 
@@ -53,14 +53,13 @@ By default, the server attempts to write log files to the `/var/log/carta` direc
 ## Running the server
 
 - Build [carta-backend](https://github.com/CARTAvis/carta-backend) using the `dev` branch (or create the appropriate container)
-- Configure and build [carta-frontend](https://github.com/CARTAvis/carta-frontend) using the `angus/database_service` branch
 - Edit the server configuration file at `/etc/carta/config.json`
 - Perform system configuration:
     - Ensure `/var/log/carta` exists and is writeable by the appropriate user    
     - Adjust the sudoers configuration
     - Redirect traffic to port 8000
 
-After you have built the frontend and backend and edited the server configuration, you can start the server with `npm run start`. You can use a utility such as [forever](https://github.com/foreversd/forever) or [pm2](https://pm2.keymetrics.io/) to keep the server running by restarting it automatically.
+After you have built the backend and edited the server configuration, you can start the server with `npm run start`. You can use a utility such as [forever](https://github.com/foreversd/forever) or [pm2](https://pm2.keymetrics.io/) to keep the server running by restarting it automatically.
 
 ## Getting help
 
@@ -71,4 +70,3 @@ If you encounter a problem with the server or documentation, please submit an is
 Still to be implemented:
 - Better error feedback
 - More flexibility with external auth
-- Integration with a CARTA frontend npm package

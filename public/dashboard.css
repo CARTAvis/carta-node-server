@@ -62,9 +62,13 @@
 	cursor: pointer;
 }
 
+.spacer {
+	height: 46px;
+}
+
 .button.button-disabled {
 	cursor: not-allowed;
-	opacity: 50%;
+	opacity: 25%;
 }
 
 .button-primary {
@@ -84,11 +88,11 @@
 }
 
 .button-warning {
-	background: #af4c4c;
+	background: #af604c;
 }
 
 .button-warning:hover, .button-warning:active, .button-warning:focus {
-	background: #a04343;
+	background: #a05643;
 }
 
 .sso-buttons {

@@ -50,8 +50,15 @@ app.get("/", function (req, res) {
     res.render("index", {clientId: ServerConfig.authProviders.google?.clientId, hostedDomain: ServerConfig.authProviders.google?.validDomain});
 });
 
-console.log(chalk.green.bold(`Serving CARTA frontend from ${ServerConfig.frontendPath}`));
-app.use("/frontend", express.static(ServerConfig.frontendPath));
+if (ServerConfig.frontendPath) {
+    console.log(chalk.green.bold(`Serving CARTA frontend from ${ServerConfig.frontendPath}`));
+    app.use("/frontend", express.static(ServerConfig.frontendPath));
+} else {
+    const frontendPackage = require("../node_modules/carta-frontend/package.json");
+    const frontendVersion = frontendPackage?.version;
+    console.log(chalk.green.bold(`Serving packaged CARTA frontend (Version ${frontendVersion})`));
+    app.use("/frontend", express.static(path.join(__dirname, "../node_modules/carta-frontend/build")));
+}
 app.use(express.static(path.join(__dirname, "../public")));
 
 // Simplified error handling

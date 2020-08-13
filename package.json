@@ -1,6 +1,6 @@
 {
     "name": "carta-node-server",
-    "version": "1.0.5-alpha.1",
+    "version": "1.0.6-alpha.0",
     "description": "NodeJS-based server for CARTA",
     "repository": "https://github.com/CARTAvis/carta-node-server",
     "homepage": "http://cartavis.github.io/",
@@ -18,7 +18,7 @@
         "@pm2/io": "^4.3.5",
         "ajv": "^6.12.3",
         "body-parser": "^1.19.0",
-        "carta-frontend": "^1.4.0-alpha.5",
+        "carta-frontend": "^1.4.0-alpha.6",
         "chalk": "^4.1.0",
         "compression": "^1.7.4",
         "cookie-parser": "^1.4.5",

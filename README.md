@@ -1,5 +1,5 @@
 # CARTA Server
-[![carta version](https://img.shields.io/badge/CARTA%20Version-1.4.0--alpha--6-red)](https://github.com/CARTAvis/carta-backend/releases/tag/v1.4.0-alpha.6)
+[![carta version](https://img.shields.io/badge/CARTA%20Version-1.4.0--beta--1-orange)](https://github.com/CARTAvis/carta-backend/releases/tag/v1.4.0-beta.1)
 [![npm version](http://img.shields.io/npm/v/carta-node-server.svg?style=flat)](https://npmjs.org/package/carta-node-server "View this project on npm")
 ![last commit](https://img.shields.io/github/last-commit/CARTAvis/carta-node-server)
 ![commit activity](https://img.shields.io/github/commit-activity/m/CARTAvis/carta-node-server)

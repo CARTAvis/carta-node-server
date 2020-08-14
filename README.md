@@ -4,8 +4,6 @@
 ![last commit](https://img.shields.io/github/last-commit/CARTAvis/carta-node-server)
 ![commit activity](https://img.shields.io/github/commit-activity/m/CARTAvis/carta-node-server)
 
-#### Work in progress, documentation still under construction
-
 ## Introduction
 
 The CARTA server provides a simple dashboard which authenticates users and allows them to manage their CARTA backend processes. It also serves static frontend code to clients, and dynamically redirects authenticated client connections to the appropriate backend processes. The server can either handle authentication itself, or delegate it to an external OAuth2-based authentication server.
@@ -52,7 +50,7 @@ By default, the server attempts to write log files to the `/var/log/carta` direc
 
 ## Running the server
 
-- Build [carta-backend](https://github.com/CARTAvis/carta-backend) using the `dev` branch (or create the appropriate container)
+- Checkout and build [carta-backend](https://github.com/CARTAvis/carta-backend) using the `v1.4.0-beta.1` tag (or create the appropriate container)
 - Edit the server configuration file at `/etc/carta/config.json`
 - Perform system configuration:
     - Ensure `/var/log/carta` exists and is writeable by the appropriate user    

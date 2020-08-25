@@ -50,14 +50,14 @@ By default, the server attempts to write log files to the `/var/log/carta` direc
 
 ## Running the server
 
-- Checkout and build [carta-backend](https://github.com/CARTAvis/carta-backend) using the `v1.4.0-beta.1` tag (or create the appropriate container)
+- Checkout and build [carta-backend](https://github.com/CARTAvis/carta-backend) using the `v1.4.0-beta.1` tag (or create the appropriate container). Detailed instructions for Ubuntu 20.04 are available [here](docs/ubuntu_focal_detailed_install.md).
 - Edit the server configuration file at `/etc/carta/config.json`
 - Perform system configuration:
     - Ensure `/var/log/carta` exists and is writeable by the appropriate user    
     - Adjust the sudoers configuration
     - Redirect traffic to port 8000
 
-After you have built the backend and edited the server configuration, you can start the server with `npm run start`. You can use a utility such as [forever](https://github.com/foreversd/forever) or [pm2](https://pm2.keymetrics.io/) to keep the server running by restarting it automatically.
+After you have built the backend and edited the server configuration, you can start the server with `npm run start` (if cloning from the git repository) or just running `carta-node-server` (if installing from NPM pacakge via `npm install -g carta-node-server`). You can use a utility such as [forever](https://github.com/foreversd/forever) or [pm2](https://pm2.keymetrics.io/) to keep the server running.
 
 ## Getting help
 

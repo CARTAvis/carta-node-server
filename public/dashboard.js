@@ -1,9 +1,9 @@
-const strippedPath = window.location.href.replace(window.location.search, "");
+const strippedPath = window.location.href.replace(window.location.search, "").replace("/dashboard", "/");
 const apiBase = `${strippedPath}api`;
 const urlParams = new URLSearchParams(window.location.search);
 let redirectUrl;
 let autoRedirect = false;
-redirectUrl = `${strippedPath}frontend`;
+redirectUrl = `${strippedPath}`;
 if (urlParams.has("redirectParams")) {
     redirectUrl+= atob(urlParams.get("redirectParams"));
     autoRedirect = true;

@@ -30,7 +30,7 @@ app.use("/api/database", databaseRouter);
 // Construct runtime config
 const runtimeConfig: CartaRuntimeConfig = {};
 
-runtimeConfig.dashboardAddress = ServerConfig.dashboardAddress || ServerConfig.serverAddress;
+runtimeConfig.dashboardAddress = ServerConfig.dashboardAddress || (ServerConfig.serverAddress + "/dashboard");
 runtimeConfig.apiAddress = ServerConfig.apiAddress || (ServerConfig.serverAddress + "/api");
 if (ServerConfig.authProviders.google) {
     runtimeConfig.googleClientId = ServerConfig.authProviders.google.clientId;
@@ -42,24 +42,26 @@ if (ServerConfig.authProviders.google) {
     runtimeConfig.logoutAddress = runtimeConfig.apiAddress + "/auth/logout";
 }
 
-app.use("/frontend/config", (req: express.Request, res: express.Response) => {
+app.use("/config", (req: express.Request, res: express.Response) => {
     return res.json(runtimeConfig);
-});
-
-app.get("/", function (req, res) {
-    res.render("index", {clientId: ServerConfig.authProviders.google?.clientId, hostedDomain: ServerConfig.authProviders.google?.validDomain});
 });
 
 if (ServerConfig.frontendPath) {
     console.log(chalk.green.bold(`Serving CARTA frontend from ${ServerConfig.frontendPath}`));
+    app.use("/", express.static(ServerConfig.frontendPath));
     app.use("/frontend", express.static(ServerConfig.frontendPath));
 } else {
     const frontendPackage = require("../node_modules/carta-frontend/package.json");
     const frontendVersion = frontendPackage?.version;
     console.log(chalk.green.bold(`Serving packaged CARTA frontend (Version ${frontendVersion})`));
-    app.use("/frontend", express.static(path.join(__dirname, "../node_modules/carta-frontend/build")));
+    app.use("/", express.static(path.join(__dirname, "../node_modules/carta-frontend/build")));
 }
-app.use(express.static(path.join(__dirname, "../public")));
+
+app.get("/dashboard", function (req, res) {
+    res.render("index", {clientId: ServerConfig.authProviders.google?.clientId, hostedDomain: ServerConfig.authProviders.google?.validDomain});
+});
+
+app.use("/dashboard", express.static(path.join(__dirname, "../public")));
 
 // Simplified error handling
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

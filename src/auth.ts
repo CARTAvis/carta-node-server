@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import * as url from "url";
 import * as jwt from "jsonwebtoken";
 import * as express from "express";
 import * as userid from "userid";
@@ -7,8 +8,8 @@ import {OAuth2Client} from "google-auth-library";
 import {VerifyOptions} from "jsonwebtoken";
 import ms = require('ms');
 import {noCache} from "./util";
-import {RequestHandler, AsyncRequestHandler, AuthenticatedRequest, Verifier, UserMap, CartaServerConfig, CartaLdapAuthConfig} from "./types";
-import ServerConfig from "./config";
+import {RequestHandler, AsyncRequestHandler, AuthenticatedRequest, Verifier, UserMap, CartaLdapAuthConfig} from "./types";
+import {ServerConfig, RuntimeConfig} from "./config";
 
 // maps JWT claim "iss" to a token verifier
 const tokenVerifiers = new Map<string, Verifier>();
@@ -49,6 +50,12 @@ function readUserTable(issuer: string | string[], filename: string) {
     } else {
         userMaps.set(issuer, userMap);
     }
+}
+
+let authPath: string | null;
+if (RuntimeConfig.tokenRefreshAddress) {
+    const authUrl = url.parse(RuntimeConfig.tokenRefreshAddress);
+    authPath = authUrl.pathname;
 }
 
 
@@ -227,7 +234,7 @@ if (ServerConfig.authProviders.ldap) {
                         }
                     );
                     res.cookie("Refresh-Token", refreshToken, {
-                        path: "/api/auth/refresh",
+                        path: authPath ?? "",
                         maxAge: ms(authConf.refreshTokenAge as string),
                         httpOnly: true,
                         secure: true,
@@ -258,7 +265,7 @@ if (ServerConfig.authProviders.ldap) {
 
 function logoutHandler(req: express.Request, res: express.Response) {
     res.cookie("Refresh-Token", "", {
-        path: "/api/auth/refresh",
+        path: authPath ?? "",
         maxAge: 0,
         httpOnly: true,
         secure: true,

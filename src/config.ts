@@ -1,5 +1,5 @@
 import * as yargs from "yargs";
-import {CartaCommandLineOptions, CartaServerConfig} from "./types";
+import {CartaCommandLineOptions, CartaRuntimeConfig, CartaServerConfig} from "./types";
 import * as Ajv from "ajv";
 
 const argv = yargs.options({
@@ -15,12 +15,12 @@ const configSchema = require("../config/config_schema.json");
 const ajv = new Ajv({useDefaults: true});
 const validateConfig = ajv.compile(configSchema);
 
-let configObject: CartaServerConfig;
+let serverConfig: CartaServerConfig;
 
 try {
     console.log(`Checking config file ${argv.config}`);
-    configObject = require(argv.config);
-    const isValid = validateConfig(configObject);
+    serverConfig = require(argv.config);
+    const isValid = validateConfig(serverConfig);
     if (!isValid) {
         console.error(validateConfig.errors);
         process.exit(1);
@@ -30,4 +30,19 @@ try {
     process.exit(1);
 }
 
-export default configObject;
+
+// Construct runtime config
+const runtimeConfig: CartaRuntimeConfig = {};
+runtimeConfig.dashboardAddress = serverConfig.dashboardAddress || (serverConfig.serverAddress + "/dashboard");
+runtimeConfig.apiAddress = serverConfig.apiAddress || (serverConfig.serverAddress + "/api");
+if (serverConfig.authProviders.google) {
+    runtimeConfig.googleClientId = serverConfig.authProviders.google.clientId;
+} else if (serverConfig.authProviders.external) {
+    runtimeConfig.tokenRefreshAddress = serverConfig.authProviders.external.tokenRefreshAddress;
+    runtimeConfig.logoutAddress = serverConfig.authProviders.external.logoutAddress;
+} else {
+    runtimeConfig.tokenRefreshAddress = runtimeConfig.apiAddress + "/auth/refresh";
+    runtimeConfig.logoutAddress = runtimeConfig.apiAddress + "/auth/logout";
+}
+
+export {serverConfig as ServerConfig, runtimeConfig as RuntimeConfig};

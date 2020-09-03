@@ -12,8 +12,7 @@ import * as chalk from "chalk";
 import {createUpgradeHandler, serverRouter} from "./serverHandlers";
 import {authRouter} from "./auth";
 import {databaseRouter, initDB} from "./database";
-import {CartaRuntimeConfig} from "./types";
-import ServerConfig from "./config";
+import {ServerConfig, RuntimeConfig} from "./config";
 
 let app = express();
 app.use(bodyParser.urlencoded({extended: true}));
@@ -28,23 +27,8 @@ app.use("/api/auth", authRouter);
 app.use("/api/server", serverRouter);
 app.use("/api/database", databaseRouter);
 
-// Construct runtime config
-const runtimeConfig: CartaRuntimeConfig = {};
-
-runtimeConfig.dashboardAddress = ServerConfig.dashboardAddress || (ServerConfig.serverAddress + "/dashboard");
-runtimeConfig.apiAddress = ServerConfig.apiAddress || (ServerConfig.serverAddress + "/api");
-if (ServerConfig.authProviders.google) {
-    runtimeConfig.googleClientId = ServerConfig.authProviders.google.clientId;
-} else if (ServerConfig.authProviders.external) {
-    runtimeConfig.tokenRefreshAddress = ServerConfig.authProviders.external.tokenRefreshAddress;
-    runtimeConfig.logoutAddress = ServerConfig.authProviders.external.logoutAddress;
-} else {
-    runtimeConfig.tokenRefreshAddress = runtimeConfig.apiAddress + "/auth/refresh";
-    runtimeConfig.logoutAddress = runtimeConfig.apiAddress + "/auth/logout";
-}
-
 app.use("/config", (req: express.Request, res: express.Response) => {
-    return res.json(runtimeConfig);
+    return res.json(RuntimeConfig);
 });
 
 if (ServerConfig.frontendPath) {

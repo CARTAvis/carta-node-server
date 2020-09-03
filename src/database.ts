@@ -3,7 +3,7 @@ import {Collection, Db, MongoClient} from "mongodb";
 import {authGuard} from "./auth";
 import {noCache} from "./util";
 import {AuthenticatedRequest} from "./types";
-import ServerConfig from "./config";
+import {ServerConfig} from "./config";
 import * as Ajv from "ajv";
 
 const PREFERENCE_SCHEMA_VERSION = 1;

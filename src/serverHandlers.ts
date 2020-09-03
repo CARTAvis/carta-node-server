@@ -11,7 +11,7 @@ import {IncomingMessage} from "http";
 import {delay, noCache} from "./util";
 import {authGuard, getUser, verifyToken} from "./auth";
 import {AuthenticatedRequest} from "./types";
-import ServerConfig from "./config";
+import {ServerConfig} from "./config";
 
 const processMap = new Map<string, { process: ChildProcess, port: number, headerToken: string }>();
 

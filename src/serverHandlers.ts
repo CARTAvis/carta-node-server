@@ -6,6 +6,7 @@ import * as moment from "moment";
 import * as querystring from "querystring";
 import {v4} from "uuid";
 import * as io from "@pm2/io";
+import * as tcpPortUsed from "tcp-port-used";
 import {ChildProcess, spawn, spawnSync} from "child_process";
 import {IncomingMessage} from "http";
 import {delay, noCache} from "./util";
@@ -30,11 +31,7 @@ function deleteProcess(username: string) {
     userProcessesMetric.set(processMap.size);
 }
 
-function nextAvailablePort() {
-    if (!processMap.size) {
-        return ServerConfig.backendPorts.min;
-    }
-
+async function nextAvailablePort() {
     // Get a map of all the ports in the range currently in use
     let existingPorts = new Map<number, boolean>();
     processMap.forEach(value => {
@@ -43,7 +40,16 @@ function nextAvailablePort() {
 
     for (let p = ServerConfig.backendPorts.min; p < ServerConfig.backendPorts.max; p++) {
         if (!existingPorts.has(p)) {
-            return p;
+            try {
+                const portUsed = await tcpPortUsed.check(p);
+                if (!portUsed) {
+                    return p;
+                } else {
+                    console.log(`Skipping stale port ${p}`)
+                }
+            } catch (err) {
+                console.log(`Error checking status for port ${p}: ${err.message}`);
+            }
         }
     }
     return -1;
@@ -111,7 +117,7 @@ async function startServer(username: string) {
     let logStream: fs.WriteStream | undefined;
 
     try {
-        const port = nextAvailablePort();
+        const port = await nextAvailablePort();
         if (port < 0) {
             throw {statusCode: 500, message: "No available ports for the backend process"};
         }
@@ -148,7 +154,7 @@ async function startServer(username: string) {
             }
         } else {
             logLocation = "stdout";
-            child.stdout.on('data', function(data) {
+            child.stdout.on('data', function (data) {
                 console.log(data.toString());
             });
         }

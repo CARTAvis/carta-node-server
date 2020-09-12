@@ -213,12 +213,12 @@ if (ServerConfig.authProviders.ldap) {
         const password = req.body?.password;
 
         if (!username || !password) {
-            throw {statusCode: 400, message: "Malformed login request"};
+            return res.status(400).json({statusCode: 400, message: "Malformed login request"});
         }
 
         ldap.authenticate(username, password, (err, user) => {
             if (err || user?.uid !== username) {
-                throw {statusCode: 403, message: "Invalid username/password combo"};
+                return res.status(403).json({statusCode: 403, message: "Invalid username/password combo"});
             } else {
                 try {
                     const uid = userid.uid(username);
@@ -252,7 +252,7 @@ if (ServerConfig.authProviders.ldap) {
                         expires_in: ms(authConf.accessTokenAge as string) / 1000
                     });
                 } catch (e) {
-                    throw {statusCode: 403, message: "User does not exist"};
+                    return res.status(403).json({statusCode: 403, message: "User does not exist"});
                 }
             }
         });

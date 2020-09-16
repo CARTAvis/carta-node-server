@@ -71,7 +71,7 @@ function clearToken() {
 }
 
 showMessage = (message, error, elementId) => {
-    const statusElement = document.getElementById(elementId || "login-status");
+    const statusElement = document.getElementById(elementId || "carta-status");
 
     if (message) {
         statusElement.style.display = "block";
@@ -122,10 +122,8 @@ updateServerStatus = async () => {
 
 updateRedirectURL = (hasServer) => {
     if (hasServer) {
-        setButtonDisabled("stop", false);
         showMessage("CARTA server running", false, "carta-status");
     } else {
-        setButtonDisabled("stop", true);
         showMessage(`Logged in as ${authenticatedUser}`, false, "carta-status");
     }
 }
@@ -174,7 +172,6 @@ onLoginSucceeded = async (username, type) => {
 }
 
 handleServerStop = async () => {
-    setButtonDisabled("stop", true);
     try {
         try {
             const res = await apiCall("server/stop", undefined, "post", true);
@@ -183,7 +180,6 @@ handleServerStop = async () => {
                 notyf.open({type: "info", message: "Stopped CARTA server successfully"});
                 await updateServerStatus();
             } else {
-                notyf.success("Stopped CARTA server successfully");
                 notyf.error("Failed to stop CARTA server");
                 console.log(body.message);
             }

@@ -6,6 +6,7 @@ import * as httpProxy from "http-proxy";
 import * as http from "http";
 import * as url from "url";
 import * as cors from "cors";
+import * as fs from "fs";
 import * as path from "path";
 import * as compression from "compression";
 import * as chalk from "chalk";
@@ -41,6 +42,17 @@ if (ServerConfig.frontendPath) {
     app.use("/", express.static(path.join(__dirname, "../node_modules/carta-frontend/build")));
 }
 
+let bannerDataUri: string;
+if (ServerConfig.dashboard?.bannerImage) {
+    const isBannerSvg = ServerConfig.dashboard.bannerImage.toLowerCase().endsWith(".svg");
+    const bannerDataBase64 = fs.readFileSync(ServerConfig.dashboard.bannerImage, 'base64');
+    if (isBannerSvg) {
+        bannerDataUri = "data:image/svg+xml;base64," + bannerDataBase64;
+    } else {
+        bannerDataUri = "data:image/png;base64," + bannerDataBase64;
+    }
+}
+
 app.get("/frontend", (req, res) => {
     const queryString = url.parse(req.url, false)?.query;
     if (queryString) {
@@ -51,7 +63,16 @@ app.get("/frontend", (req, res) => {
 });
 
 app.get("/dashboard", function (req, res) {
-    res.render("index", {clientId: ServerConfig.authProviders.google?.clientId, hostedDomain: ServerConfig.authProviders.google?.validDomain});
+    res.render("templated", {
+        clientId: ServerConfig.authProviders.google?.clientId,
+        hostedDomain: ServerConfig.authProviders.google?.validDomain,
+        bannerColor: ServerConfig.dashboard?.bannerColor,
+        backgroundColor: ServerConfig.dashboard?.backgroundColor,
+        bannerImage: bannerDataUri,
+        infoText: ServerConfig.dashboard?.infoText,
+        loginText: ServerConfig.dashboard?.loginText,
+        footerText: ServerConfig.dashboard?.footerText
+    });
 });
 
 app.use("/dashboard", express.static(path.join(__dirname, "../public")));

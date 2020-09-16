@@ -1,0 +1,63 @@
+doctype html
+html
+    head
+        meta(charset="UTF-8")
+        title CARTA Dashboard
+        if clientId
+            meta(name='google-signin-scope' content='profile email')
+            meta(name='google-signin-client_id' content=clientId)
+            if hostedDomain
+                meta(name='google-signin-hosted_domain' content=hostedDomain)
+            script(src='https://apis.google.com/js/platform.js?onload=initGoogleAuth' async='' defer='')
+        link(href="dashboard/templated.css" rel="stylesheet" type="text/css")
+        link(rel='stylesheet' href='dashboard/notyf.min.css')
+        link(rel='shortcut icon' href='dashboard/carta_icon_128px.png')
+        title CARTA Dashboard
+        script(src='dashboard/notyf.min.js')
+        script(src='dashboard/dashboard.js')
+    body
+        .center
+            .signin-dialog
+                if bannerImage
+                    .banner(style="background-color: " + bannerColor)
+                        img(src=bannerImage height="60" style="display: block; margin: auto" alt="site_banner")
+                .logo
+                    img(src="dashboard/images/carta_logo.svg" alt="carta_logo")
+                    .titletext
+                        | CARTA 1.4.0
+                        br
+                        span(style="font-size: 13px; font-weight: lighter") Cube Analysis and Rendering Tool for Astronomy
+                        br
+                .login-form
+                    .bodytext
+                        if infoText
+                            | !{infoText}
+                            br
+                        if loginText
+                            | !{loginText}
+                    if !clientId
+                        .formcontainer
+                            form
+                                input#username(type="text" placeholder="Username" required="")
+                                br
+                                input#password(type="password" placeholder="Password" required="")
+                                br
+                                button.button.button-signin#login(type="submit") SIGN IN
+                    else
+                        .sso-buttons
+                            .g-signin2(data-onsuccess='onSignIn' data-theme='dark' data-width="220" data-height="46")
+                    p#login-status(style='display: none')
+                .carta-form(style='display: none')
+                    .bodytext
+                        if infoText
+                            | !{infoText}
+                    .formcontainer
+                        button#open.button.button-newsession NEW CARTA SESSION
+                        br
+                        button#stop.button.button-restart RESTART CARTA SERVICE
+                        br
+                        button#logout.button.button-logout LOGOUT
+                        p#carta-status(style='display: none')
+            .footer
+                if footerText
+                    | !{footerText}

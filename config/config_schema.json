@@ -64,7 +64,10 @@
                     "description": "Whether to use the email field as a unique identifier",
                     "type": "boolean",
                     "default": true,
-                    "examples": [true, false]
+                    "examples": [
+                        true,
+                        false
+                    ]
                 },
                 "userLookupTable": {
                     "description": "Path of user lookup table as text file in format <unique user ID> <system user>. Example table given in `usertable.txt.stub`",
@@ -401,6 +404,59 @@
             "type": "integer",
             "minimum": 0,
             "default": 250
+        },
+        "dashboard": {
+            "description": "Dashboard appearance configuration",
+            "properties": {
+                "backgroundColor": {
+                    "type": "string",
+                    "description": "Background color for the dashboard",
+                    "default": "#f6f8fa",
+                    "examples": [
+                        "red",
+                        "rgb(171 66 66)",
+                        "#ff11ee"
+                    ]
+                },
+                "bannerColor": {
+                    "type": "string",
+                    "description": "Background color for the institutional logo banner",
+                    "default": "#606f7e",
+                    "examples": [
+                        "red",
+                        "rgb(171 66 66)",
+                        "#ff11ee"
+                    ]
+                },
+                "bannerImage": {
+                    "type": "string",
+                    "description": "Path to institutional logo in PNG or SVG format"
+                },
+                "infoText": {
+                    "type": "string",
+                    "description": "Text displayed before and after sign in. Plain text or HTML",
+                    "examples": [
+                        "Welcome to the server",
+                        "<span>Welcome to <b>the</b> server</span>"
+                    ]
+                },
+                "loginText": {
+                    "type": "string",
+                    "description": "Text displayed before sign-in only. Plain text or HTML",
+                    "examples": [
+                        "Please enter your username and password",
+                        "<span>Click <b>Sign in</b> to log in via Google</span>"
+                    ]
+                },
+                "footerText": {
+                    "type": "string",
+                    "description": "Footer text. Plain text or HTML",
+                    "examples": [
+                        "Please contact the CARTA helpdesk for more information",
+                        "<span>If you would like to access the server, or have any problems, comments or suggestions, please <a href='mailto:test@test.com'>contact us.</a></span>"
+                    ]
+                }
+            }
         }
     }
 }

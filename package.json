@@ -1,6 +1,6 @@
 {
     "name": "carta-node-server",
-    "version": "1.4.0-beta.8",
+    "version": "1.4.0-rc.0",
     "description": "NodeJS-based server for CARTA",
     "repository": "https://github.com/CARTAvis/carta-node-server",
     "homepage": "http://cartavis.github.io/",

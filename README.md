@@ -1,5 +1,5 @@
 # CARTA Server
-[![carta version](https://img.shields.io/badge/CARTA%20Version-1.4.0--rc--0-yellow)](https://github.com/CARTAvis/carta-backend/releases/tag/v1.4.0-rc.0)
+[![carta version](https://img.shields.io/badge/CARTA%20Version-1.4.0-brightgreen)](https://github.com/CARTAvis/carta-backend/releases/tag/v1.4.0)
 [![npm version](http://img.shields.io/npm/v/carta-node-server.svg?style=flat)](https://npmjs.org/package/carta-node-server "View this project on npm")
 ![last commit](https://img.shields.io/github/last-commit/CARTAvis/carta-node-server)
 ![commit activity](https://img.shields.io/github/commit-activity/m/CARTAvis/carta-node-server)
@@ -10,11 +10,16 @@ The CARTA server provides a simple dashboard which authenticates users and allow
 
 ## Dependencies
 
-To allow the server to serve CARTA sessions, you must give it access to an executable CARTA backend, which can be either a compiled executable or a container. If you want to use a non-standard version of the CARTA frontend, you must also build it, and adjust the server configuration to point to it. You should use the `v1.4.0-rc.0` tag of [`carta-backend`](https://github.com/CARTAvis/carta-backend).
+To allow the server to serve CARTA sessions, you must give it access to an executable CARTA backend, which can be either a compiled executable or a container. If you want to use a non-standard version of the CARTA frontend, you must also build it, and adjust the server configuration to point to it. You should use the `v1.4.0` tag of [`carta-backend`](https://github.com/CARTAvis/carta-backend).
 
 By default, the server runs on port 8000. It should be run behind a proxy, so that it can be accessed via HTTP and HTTPS. 
 
 MongoDB is required for storing user preferences, layouts and (in the near future) server metrics. You also need a working [NodeJS LTS](https://github.com/nvm-sh/nvm#long-term-support) installation with NPM. Use `npm install` to install all Node dependencies.
+
+## Installation
+
+You can install the CARTA server from NPM by running `npm install -g carta-node-server` and then running `carta-node-server`.
+You can also install the server from GitHub by cloning this repository, running `npm install` and then `npm run start`.
 
 ## Authentication support
 
@@ -30,9 +35,11 @@ openssl rsa -in carta_private.pem -outform PEM -pubout -out carta_public.pem
 ```
 
 ## Server Configuration
-Server configuration is handled by a configuration file in JSON format, adhering to the [CARTA config schema](config/config_schema.json). Additional details can be found in the auto-generated [config documentation](docs/config_schema.html) or the [example config](config/example_config.json). By default, the server assumes the config file is located at `/etc/carta/config.json`, but you can change this with the `--config` or `-c` command line argument when running the server. 
+Server configuration is handled by a configuration file in JSON format, adhering to the [CARTA config schema](config/config_schema.json). Additional details can be found in the auto-generated config documentation in the `docs` folder, or the [example config](config/example_config.json). By default, the server assumes the config file is located at `/etc/carta/config.json`, but you can change this with the `--config` or `-c` command line argument when running the server. 
 
 For external authentication systems, you may need to translate a unique ID (such as email or username) from the authenticated user information to the system user. You can do this by providing a [user lookup table](config/usertable.txt.stub), which is watched by the server and reloaded whenever it is updated.
+
+You can alter the server's dashboard appearance by adjusting the `dashboard` field in the config file. You can change the banner image and background, and add login instructions or institutional notices.
 
 ## System Configuration
 
@@ -50,14 +57,14 @@ By default, the server attempts to write log files to the `/var/log/carta` direc
 
 ## Running the server
 
-- Checkout and build [carta-backend](https://github.com/CARTAvis/carta-backend) using the `v1.4.0-rc.0` tag (or create the appropriate container). Detailed instructions for Ubuntu 20.04 are available [here](docs/ubuntu_focal_detailed_install.md).
+- Checkout and build [carta-backend](https://github.com/CARTAvis/carta-backend) using the `v1.4.0` tag (or create the appropriate container). Detailed instructions for Ubuntu 20.04 are available [here](docs/ubuntu_focal_detailed_install.md).
 - Edit the server configuration file at `/etc/carta/config.json`
 - Perform system configuration:
     - Ensure `/var/log/carta` exists and is writeable by the appropriate user    
     - Adjust the sudoers configuration
     - Redirect traffic to port 8000
 
-After you have built the backend and edited the server configuration, you can start the server with `npm run start` (if cloning from the git repository) or just running `carta-node-server` (if installing from NPM pacakge via `npm install -g carta-node-server`). You can use a utility such as [forever](https://github.com/foreversd/forever) or [pm2](https://pm2.keymetrics.io/) to keep the server running.
+After you have built the backend and edited the server configuration, you can start the server with `npm run start` (if cloning from the git repository) or just running `carta-node-server` (if installing from NPM). You can use a utility such as [forever](https://github.com/foreversd/forever) or [pm2](https://pm2.keymetrics.io/) to keep the server running.
 
 ## Getting help
 

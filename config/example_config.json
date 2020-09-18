@@ -19,5 +19,13 @@
     "processCommand": "/usr/local/bin/carta_backend",
     "killCommand": "/usr/local/bin/carta_kill_script.sh",
     "rootFolderTemplate": "/home/{username}",
-    "baseFolderTemplate": "/home/{username}"
+    "baseFolderTemplate": "/home/{username}",
+    "dashboard": {
+        "bannerColor": "#d2dce5",
+        "backgroundColor": "#f6f8fa",
+        "bannerImage": "/path/to/my/image.svg",
+        "infoText": "Welcome to the CARTA server.",
+        "loginText": "<span>Click <b>Sign in</b> to log in via Google.</span>",
+        "footerText": "<span>If you would like to access the CARTA server, or have any problems, comments or suggestions, please <a href='mailto:test@test.com'>contact us.</a></span>"
+    }
 }

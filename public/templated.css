@@ -28,7 +28,8 @@ body {
 	display: flex;
 	justify-content: center;
 	height: 90px;
-	margin: 30px -20px 15px 0;
+	padding-top: 30px;
+	margin: 0 -20px 15px 0;
 }
 
 .spacer {

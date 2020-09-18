@@ -38,12 +38,11 @@ html
                             | !{loginText}
                     if !clientId
                         .formcontainer
-                            form
-                                input#username(type="text" placeholder="Username" required="")
-                                br
-                                input#password(type="password" placeholder="Password" required="")
-                                br
-                                button.button.button-signin#login(type="submit") SIGN IN
+                            input#username(type="text" placeholder="Username" required="")
+                            br
+                            input#password(type="password" placeholder="Password" required="")
+                            br
+                            button.button.button-signin#login SIGN IN
                     else
                         .sso-buttons
                             .g-signin2(data-onsuccess='onSignIn' data-theme='dark' data-width="220" data-height="46")

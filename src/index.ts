@@ -32,14 +32,21 @@ app.use("/config", (req: express.Request, res: express.Response) => {
     return res.json(RuntimeConfig);
 });
 
+// Prevent caching of the frontend HTML code
+const staticHeaderHandler = (res: express.Response, path: string) => {
+    if (path.endsWith(".html")) {
+        res.setHeader("Cache-Control", 'no-cache');
+    }
+}
+
 if (ServerConfig.frontendPath) {
     console.log(chalk.green.bold(`Serving CARTA frontend from ${ServerConfig.frontendPath}`));
-    app.use("/", express.static(ServerConfig.frontendPath));
+    app.use("/", express.static(ServerConfig.frontendPath, {setHeaders: staticHeaderHandler}));
 } else {
     const frontendPackage = require("../node_modules/carta-frontend/package.json");
     const frontendVersion = frontendPackage?.version;
     console.log(chalk.green.bold(`Serving packaged CARTA frontend (Version ${frontendVersion})`));
-    app.use("/", express.static(path.join(__dirname, "../node_modules/carta-frontend/build")));
+    app.use("/", express.static(path.join(__dirname, "../node_modules/carta-frontend/build"), {setHeaders: staticHeaderHandler}));
 }
 
 let bannerDataUri: string;

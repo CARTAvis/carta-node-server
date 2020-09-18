@@ -31,6 +31,10 @@ body {
 	margin: 30px -20px 15px 0;
 }
 
+.spacer {
+	width: 0px;
+}
+
 .titletext {
 	display: block;
 	text-align: left;
@@ -40,6 +44,15 @@ body {
 	line-height: 21px;
 	font-size: 32px;
 	font-weight: bold;
+}
+
+@supports (-moz-appearance:none) {
+    .titletext {
+		width: 280%;
+	}
+	.spacer {
+		width: 70%;
+	}
 }
 
 .bodytext {

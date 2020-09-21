@@ -16,6 +16,7 @@
     "license": "ISC",
     "dependencies": {
         "@pm2/io": "^4.3.5",
+        "@types/lodash": "^4.14.161",
         "@types/tcp-port-used": "^1.0.0",
         "ajv": "^6.12.3",
         "body-parser": "^1.19.0",
@@ -31,6 +32,7 @@
         "http-proxy": "^1.18.1",
         "jsonwebtoken": "^8.5.1",
         "ldapauth-fork": "^4.3.3",
+        "lodash": "^4.17.20",
         "moment": "^2.27.0",
         "mongodb": "^3.6.0",
         "ms": "^2.1.2",

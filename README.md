@@ -1,5 +1,5 @@
 # CARTA Server
-[![carta version](https://img.shields.io/badge/CARTA%20Version-1.4.0-brightgreen)](https://github.com/CARTAvis/carta-backend/releases/tag/v1.4.0)
+[![carta version](https://img.shields.io/badge/CARTA%20Version-2.0.0--dev.0-brightgreen)](https://github.com/CARTAvis/carta-backend/releases/tag/v2.0.0-dev.0)
 [![npm version](http://img.shields.io/npm/v/carta-node-server.svg?style=flat)](https://npmjs.org/package/carta-node-server "View this project on npm")
 ![last commit](https://img.shields.io/github/last-commit/CARTAvis/carta-node-server)
 ![commit activity](https://img.shields.io/github/commit-activity/m/CARTAvis/carta-node-server)
@@ -10,7 +10,7 @@ The CARTA server provides a simple dashboard which authenticates users and allow
 
 ## Dependencies
 
-To allow the server to serve CARTA sessions, you must give it access to an executable CARTA backend, which can be either a compiled executable or a container. If you want to use a non-standard version of the CARTA frontend, you must also build it, and adjust the server configuration to point to it. You should use the `v1.4.0` tag of [`carta-backend`](https://github.com/CARTAvis/carta-backend).
+To allow the server to serve CARTA sessions, you must give it access to an executable CARTA backend, which can be either a compiled executable or a container. If you want to use a non-standard version of the CARTA frontend, you must also build it, and adjust the server configuration to point to it. You should use the `v2.0.0-dev.0` tag of [`carta-backend`](https://github.com/CARTAvis/carta-backend).
 
 By default, the server runs on port 8000. It should be run behind a proxy, so that it can be accessed via HTTP and HTTPS. 
 
@@ -57,7 +57,7 @@ By default, the server attempts to write log files to the `/var/log/carta` direc
 
 ## Running the server
 
-- Checkout and build [carta-backend](https://github.com/CARTAvis/carta-backend) using the `v1.4.0` tag (or create the appropriate container). Detailed instructions for Ubuntu 20.04 are available [here](docs/ubuntu_focal_detailed_install.md).
+- Checkout and build [carta-backend](https://github.com/CARTAvis/carta-backend) using the `v2.0.0-dev.0` tag (or create the appropriate container). Detailed instructions for Ubuntu 20.04 are available [here](docs/ubuntu_focal_detailed_install.md).
 - Edit the server configuration file at `/etc/carta/config.json`
 - Perform system configuration:
     - Ensure `/var/log/carta` exists and is writeable by the appropriate user    

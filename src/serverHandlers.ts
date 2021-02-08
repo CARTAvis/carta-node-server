@@ -126,6 +126,7 @@ async function startServer(username: string) {
             "--preserve-env=CARTA_AUTH_TOKEN",
             "-u", `${username}`,
             ServerConfig.processCommand,
+            "-no_http", "true",
             "-port", `${port}`,
             "-root", ServerConfig.rootFolderTemplate.replace("{username}", username),
             "-base", ServerConfig.baseFolderTemplate.replace("{username}", username),

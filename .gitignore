@@ -3,4 +3,4 @@
 node_modules/*
 dist/*.js
 dist/*.js.map
-carta-node-server-*.tgz
+carta-controller-*.tgz

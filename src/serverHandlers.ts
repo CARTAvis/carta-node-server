@@ -9,17 +9,36 @@ import * as io from "@pm2/io";
 import * as tcpPortUsed from "tcp-port-used";
 import {ChildProcess, spawn, spawnSync} from "child_process";
 import {IncomingMessage} from "http";
+import {LinkedList} from "mnemonist";
 import {delay, noCache} from "./util";
 import {authGuard, getUser, verifyToken} from "./auth";
 import {AuthenticatedRequest} from "./types";
 import {ServerConfig} from "./config";
 
 const processMap = new Map<string, { process: ChildProcess, port: number, headerToken: string }>();
+const logMap = new Map<string, LinkedList<string>>();
+const LOG_LIMIT = 1000;
 
 const userProcessesMetric = io.metric({
     name: 'Active Backend Processes',
     id: 'app/realtime/backend',
 });
+
+function appendLog(username: string, output: string) {
+    if (!username) {
+        return;
+    }
+    let list = logMap.get(username);
+    if (!list) {
+        list = new LinkedList<string>();
+        logMap.set(username, list);
+    }
+
+    while (list.size >= LOG_LIMIT) {
+        list.shift();
+    }
+    list.push(output);
+}
 
 function setProcess(username: string, port: number, headerToken: string, process: ChildProcess) {
     processMap.set(username, {port, process, headerToken});
@@ -73,6 +92,24 @@ function handleCheckServer(req: AuthenticatedRequest, res: express.Response) {
             running: false
         });
     }
+}
+
+function handleLog(req: AuthenticatedRequest, res: express.Response) {
+    if (!req.username) {
+        res.status(403).json({success: false, message: "Invalid username"});
+        return;
+    }
+
+    const logList = logMap.get(req.username);
+    if (!logList?.size) {
+        res.json({success: false});
+        return;
+    }
+
+    res.json({
+        success: true,
+        log: logList.toArray()?.join("")
+    });
 }
 
 async function handleStartServer(req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) {
@@ -150,13 +187,30 @@ async function startServer(username: string) {
                 logStream = fs.createWriteStream(logLocation, {flags: "a"});
                 child.stdout.pipe(logStream);
                 child.stderr.pipe(logStream);
+                child.stdout.on('data', function (data) {
+                    const line = data.toString() as string;
+                    appendLog(username, line);
+                });
+
+                child.stderr.on('data', function (data) {
+                    const line = data.toString() as string;
+                    appendLog(username, line);
+                });
             } catch (err) {
                 console.error(`Could not create log file at ${logLocation}. Please ensure folder exists and permissions are set correctly`);
             }
         } else {
             logLocation = "stdout";
             child.stdout.on('data', function (data) {
-                console.log(data.toString());
+                const line=data.toString() as string;
+                appendLog(username, line);
+                console.log(line);
+            });
+
+            child.stderr.on('data', function (data) {
+                const line=data.toString() as string;
+                appendLog(username, line);
+                console.log(line);
             });
         }
 
@@ -271,4 +325,4 @@ export const serverRouter = express.Router();
 serverRouter.post("/start", authGuard, noCache, handleStartServer);
 serverRouter.post("/stop", authGuard, noCache, handleStopServer);
 serverRouter.get("/status", authGuard, noCache, handleCheckServer);
-
+serverRouter.get("/log", authGuard, noCache, handleLog);

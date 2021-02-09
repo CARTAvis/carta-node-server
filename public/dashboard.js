@@ -213,6 +213,41 @@ handleOpenCarta = () => {
     window.open(redirectUrl, "_self");
 }
 
+handleLog = async () => {
+    // Disable log buttons for 5 seconds
+    setButtonDisabled("show-logs", true);
+    setButtonDisabled("refresh-logs", true);
+
+    setTimeout(() => {
+        setButtonDisabled("show-logs", false);
+        setButtonDisabled("refresh-logs", false);
+    }, 5000);
+
+    try {
+        const res = await apiCall("server/log", undefined, "get", true);
+        const body = await res.json();
+        if (body.success && body.log) {
+            document.getElementById("log-modal").style.display = "block"
+            document.getElementById("main-div").classList.add("blurred");
+            const outputElement = document.getElementById("log-output");
+            if (outputElement) {
+                outputElement.innerText = body.log;
+                outputElement.scrollTop = outputElement.scrollHeight;
+            }
+        } else {
+            notyf.error("Failed to retrieve backend log");
+            console.log(body.message);
+        }
+    } catch (e) {
+        console.log(e);
+    }
+}
+
+handleHideLog = () => {
+    document.getElementById("log-modal").style.display = "none"
+    document.getElementById("main-div").classList.remove("blurred");
+}
+
 initGoogleAuth = () => {
     gapi.load("auth2", function () {
         console.log("Google auth loaded");
@@ -343,5 +378,8 @@ window.onload = async () => {
 
     document.getElementById("stop").onclick = handleServerStop;
     document.getElementById("open").onclick = handleOpenCarta;
+    document.getElementById("show-logs").onclick = handleLog;
+    document.getElementById("refresh-logs").onclick = handleLog;
+    document.getElementById("hide-logs").onclick = handleHideLog;
     document.getElementById("logout").onclick = handleLogout;
 }

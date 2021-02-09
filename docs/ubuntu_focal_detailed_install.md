@@ -1,4 +1,4 @@
-# Detailed instructions for setting up `carta-node-server` on Ubuntu 20.04.1 (Focal Fossa)
+# Detailed instructions for setting up `carta-controller` on Ubuntu 20.04.1 (Focal Fossa)
 
 ## Dependencies:
 ### Install required packages
@@ -109,9 +109,9 @@ source .bashrc
 nvm install --lts
 nvm install-latest-npm
 
-# Install carta-node-server (includes frontend config)
-npm install -g carta-node-server
-cp ${NVM_BIN}/../lib/node_modules/carta-node-server/scripts/carta_kill_script.sh
+# Install carta-controller (includes frontend config)
+npm install -g carta-controller
+cp ${NVM_BIN}/../lib/node_modules/carta-controller/scripts/carta_kill_script.sh
 
 # ensure bin folder is added to path
 source ~/.profile
@@ -124,5 +124,5 @@ nano config.json
 
 # Install PM2 node service
 npm install -g pm2
-pm2 start carta-node-server
+pm2 start carta-controller
 ```

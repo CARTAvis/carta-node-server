@@ -1,12 +1,12 @@
 {
-    "name": "carta-node-server",
+    "name": "carta-controller",
     "version": "1.4.1",
     "description": "NodeJS-based server for CARTA",
-    "repository": "https://github.com/CARTAvis/carta-node-server",
+    "repository": "https://github.com/CARTAvis/carta-controller",
     "homepage": "http://cartavis.github.io/",
     "main": "dist/index.js",
     "bin": {
-        "carta-node-server": "dist/carta-node-server"
+        "carta-controller": "dist/carta-controller"
     },
     "scripts": {
         "start": "npx ts-node src/index.ts",

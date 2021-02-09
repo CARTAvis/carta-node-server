@@ -4,4 +4,4 @@ node_modules/*
 src/*
 dist/*.js.map
 tsconfig.json
-carta-node-server-*.tgz
+carta-controller-*.tgz

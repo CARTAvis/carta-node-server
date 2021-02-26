@@ -197,6 +197,7 @@ if (ServerConfig.authProviders.ldap) {
     const privateKey = fs.readFileSync(authConf.privateKeyLocation);
 
     const ldap = new LdapAuth(authConf.ldapOptions);
+    ldap.on
     ldap.on('error', err => console.error('LdapAuth: ', err));
     ldap.on('connect', v => console.log(`Ldap connected: ${v}`));
     setTimeout(() => {
@@ -218,6 +219,7 @@ if (ServerConfig.authProviders.ldap) {
 
         ldap.authenticate(username, password, (err, user) => {
             if (err || user?.uid !== username) {
+                console.log(err);
                 return res.status(403).json({statusCode: 403, message: "Invalid username/password combo"});
             } else {
                 try {

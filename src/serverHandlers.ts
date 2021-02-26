@@ -163,11 +163,11 @@ async function startServer(username: string) {
             "--preserve-env=CARTA_AUTH_TOKEN",
             "-u", `${username}`,
             ServerConfig.processCommand,
-            "-no_http", "true",
-            "-no_log", ServerConfig.logFileTemplate ? "true" : "fa`lse",
-            "-port", `${port}`,
-            "-root", ServerConfig.rootFolderTemplate.replace("{username}", username),
-            "-base", ServerConfig.baseFolderTemplate.replace("{username}", username),
+            "--no_http",
+            "--no_log", ServerConfig.logFileTemplate ? "true" : "fa`lse",
+            "--port", `${port}`,
+            "--top_level_folder", ServerConfig.rootFolderTemplate.replace("{username}", username),
+            ServerConfig.baseFolderTemplate.replace("{username}", username),
         ];
 
         if (ServerConfig.additionalArgs) {

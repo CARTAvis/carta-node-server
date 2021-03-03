@@ -15,7 +15,15 @@ import {authGuard, getUser, verifyToken} from "./auth";
 import {AuthenticatedRequest} from "./types";
 import {ServerConfig} from "./config";
 
-const processMap = new Map<string, { process: ChildProcess, port: number, headerToken: string }>();
+type ProcessInfo = {
+    process: ChildProcess,
+    port: number,
+    headerToken: string,
+    ready: boolean
+};
+
+
+const processMap = new Map<string, ProcessInfo>();
 const logMap = new Map<string, LinkedList<string>>();
 const LOG_LIMIT = 1000;
 
@@ -40,9 +48,18 @@ function appendLog(username: string, output: string) {
     list.push(output);
 }
 
-function setProcess(username: string, port: number, headerToken: string, process: ChildProcess) {
-    processMap.set(username, {port, process, headerToken});
+function setPendingProcess(username: string, port: number, headerToken: string, process: ChildProcess) {
+    processMap.set(username, {port, process, headerToken, ready: false});
     userProcessesMetric.set(processMap.size);
+}
+
+function setReadyProcess(username: string, pid: number) {
+    const processInfo = processMap.get(username);
+    if (processInfo?.process?.pid === pid) {
+        processInfo.ready = true;
+    } else {
+        console.error(`Process ${pid} is missing`);
+    }
 }
 
 function deleteProcess(username: string) {
@@ -163,11 +180,11 @@ async function startServer(username: string) {
             "--preserve-env=CARTA_AUTH_TOKEN",
             "-u", `${username}`,
             ServerConfig.processCommand,
-            "-no_http", "true",
-            "-no_log", ServerConfig.logFileTemplate ? "true" : "fa`lse",
-            "-port", `${port}`,
-            "-root", ServerConfig.rootFolderTemplate.replace("{username}", username),
-            "-base", ServerConfig.baseFolderTemplate.replace("{username}", username),
+            "--no_http", "true",
+            "--no_log", ServerConfig.logFileTemplate ? "true" : "false",
+            "--port", `${port}`,
+            "--top_level_folder", ServerConfig.rootFolderTemplate.replace("{username}", username),
+            ServerConfig.baseFolderTemplate.replace("{username}", username),
         ];
 
         if (ServerConfig.additionalArgs) {
@@ -176,6 +193,8 @@ async function startServer(username: string) {
 
         const headerToken = v4();
         const child = spawn("sudo", args, {env: {CARTA_AUTH_TOKEN: headerToken}});
+        setPendingProcess(username, port, headerToken, child);
+
         let logLocation;
 
         if (ServerConfig.logFileTemplate) {
@@ -203,13 +222,13 @@ async function startServer(username: string) {
         } else {
             logLocation = "stdout";
             child.stdout.on('data', function (data) {
-                const line=data.toString() as string;
+                const line = data.toString() as string;
                 appendLog(username, line);
                 console.log(line);
             });
 
             child.stderr.on('data', function (data) {
-                const line=data.toString() as string;
+                const line = data.toString() as string;
                 appendLog(username, line);
                 console.log(line);
             });
@@ -227,7 +246,7 @@ async function startServer(username: string) {
             throw {statusCode: 500, message: `Problem starting process for user ${username}`};
         } else {
             console.log(`Started process with PID ${child.pid} for user ${username} on port ${port}. Outputting to ${logLocation}`);
-            setProcess(username, port, headerToken, child);
+            setReadyProcess(username, child.pid);
             return;
         }
     } catch (e) {
@@ -308,6 +327,10 @@ export const createUpgradeHandler = (server: httpProxy) => async (req: IncomingM
         }
 
         if (existingProcess && !existingProcess.process.signalCode) {
+            if (!existingProcess.ready) {
+                // Wait until existing process is ready
+                await delay(ServerConfig.startDelay);
+            }
             console.log(`Redirecting to backend process for ${username} (port ${existingProcess.port})`);
             req.headers["carta-auth-token"] = existingProcess.headerToken;
             return server.ws(req, socket, head, {target: {host: "localhost", port: existingProcess.port}});

@@ -1,4 +1,4 @@
-# Detailed instructions for setting up `carta-controller` on Ubuntu 20.04.1 (Focal Fossa)
+# Detailed instructions for setting up `carta-controller` on Ubuntu 20.04.2 (Focal Fossa)
 
 ## Dependencies:
 ### Install required packages
@@ -66,7 +66,7 @@ sudo chown carta: /etc/carta
 # edit sudoers file to allow passwordless sudo execution of 
 # /home/carta/bin/carta_kill_script.sh and /home/carta/bin/carta_backend
 # by the carta user  
-sudo visudo -f /etc/sudoers.d/carta_server
+sudo visudo -f /etc/sudoers.d/carta_controller
 ``` 
 
 ## CARTA Backend install
@@ -74,10 +74,10 @@ Assuming this runs as user `carta`
 
 ```shell script
 cd ~
-mkidr -p repos && cd repos
-git clone --branch v1.4.0-beta.1 https://github.com/CARTAvis/carta-backend.git
+mkdir -p repos && cd repos
+git clone --branch v2.0.0-dev.21.03.05 https://github.com/CARTAvis/carta-backend.git
 cd carta-backend
-git submodule init && git submodule update
+git submodule init && git submodule update --recursive
 mkdir -p build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release -DEnableAvx=On ../
 make -j`nproc`
@@ -100,11 +100,11 @@ location / {
 
 ```
 
-## CARTA Server install
+## CARTA Controller install
 Assuming this runs as user `carta`
 ```shell script
 cd ~
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash
 source .bashrc
 nvm install --lts
 nvm install-latest-npm

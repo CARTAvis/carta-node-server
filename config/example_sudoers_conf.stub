@@ -1,4 +1,4 @@
-# customise this file to fit your environment using visudo /etc/sudoers.d/carta_server
+# customise this file to fit your environment using visudo /etc/sudoers.d/carta_controller
 
 # carta user can run the carta_backend command as any user in the carta-users group without entering password
 carta ALL=(%carta-users) NOPASSWD:SETENV: /usr/local/bin/carta_backend

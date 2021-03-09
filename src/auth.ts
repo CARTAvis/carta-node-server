@@ -192,13 +192,14 @@ export async function authGuard(req: AuthenticatedRequest, res: express.Response
 let loginHandler: RequestHandler;
 let refreshHandler: AsyncRequestHandler;
 
+let ldap: LdapAuth;
+
 if (ServerConfig.authProviders.ldap) {
     const authConf = ServerConfig.authProviders.ldap;
     const privateKey = fs.readFileSync(authConf.privateKeyLocation);
 
-    const ldap = new LdapAuth(authConf.ldapOptions);
+    ldap = new LdapAuth(authConf.ldapOptions);
     ldap.on('error', err => console.error('LdapAuth: ', err));
-    ldap.on('connect', v => console.log(`Ldap connected: ${v}`));
     setTimeout(() => {
         const ldapConnected = (ldap as any)?._userClient?.connected;
         if (ldapConnected) {
@@ -216,7 +217,10 @@ if (ServerConfig.authProviders.ldap) {
             return res.status(400).json({statusCode: 400, message: "Malformed login request"});
         }
 
-        ldap.authenticate(username, password, (err, user) => {
+        const handleAuth = (err: Error | string, user: any) => {
+            if (err) {
+                console.error(err);
+            }
             if (err || user?.uid !== username) {
                 return res.status(403).json({statusCode: 403, message: "Invalid username/password combo"});
             } else {
@@ -254,6 +258,23 @@ if (ServerConfig.authProviders.ldap) {
                 } catch (e) {
                     return res.status(403).json({statusCode: 403, message: "User does not exist"});
                 }
+            }
+        }
+
+        ldap.authenticate(username, password, (error, user) => {
+            const errorObj = error as Error;
+            // Need to reconnect to LDAP when we get a TLS error
+            if (errorObj?.name?.includes("ConfidentialityRequiredError")) {
+                console.log(`TLS error encountered. Reconnecting to the LDAP server!`);
+                ldap.close();
+                ldap = new LdapAuth(authConf.ldapOptions);
+                ldap.on('error', err => console.error('LdapAuth: ', err));
+                // Wait for the connection to be re-established
+                setTimeout(() => {
+                    ldap.authenticate(username, password, handleAuth);
+                }, 500);
+            } else {
+                handleAuth(error, user);
             }
         });
     };

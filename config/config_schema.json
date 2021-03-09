@@ -385,13 +385,11 @@
             "type": "array",
             "examples": [
                 [
-                    "-threads",
+                    "--omp_threads",
                     "4",
-                    "-omp_threads",
-                    "4",
-                    "-init_exit_after",
+                    "--initial_timeout",
                     "30",
-                    "-exit_after",
+                    "-exit_timeout",
                     "0"
                 ]
             ],

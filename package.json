@@ -1,6 +1,6 @@
 {
     "name": "carta-controller",
-    "version": "2.0.0-dev.21.03.05",
+    "version": "2.0.0-dev.21.03.08",
     "description": "NodeJS-based server for CARTA",
     "repository": "https://github.com/CARTAvis/carta-controller",
     "homepage": "http://cartavis.github.io/",
@@ -30,7 +30,7 @@
         "hjson": "^3.2.1",
         "http-proxy": "^1.18.1",
         "jsonwebtoken": "^8.5.1",
-        "ldapauth-fork": "^4.3.3",
+        "ldapauth-fork": "^5.0.1",
         "mnemonist": "^0.38.1",
         "moment": "^2.29.1",
         "mongodb": "^3.6.2",

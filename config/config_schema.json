@@ -389,7 +389,7 @@
                     "4",
                     "--initial_timeout",
                     "30",
-                    "-exit_timeout",
+                    "--exit_timeout",
                     "0"
                 ]
             ],

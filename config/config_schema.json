@@ -289,10 +289,17 @@
         },
         "serverPort": {
             "description": "Port to listen on. It is advised to listen on a port other than 80 or 443, behind an SSL proxy",
-            "type": "integer",
+            "type": ["integer", "string"],
             "default": 8000,
             "minimum": 0,
-            "maximum": 65535
+            "maximum": 65535,
+            "minLength": 2,
+            "examples": [8000, 8080, "/run/carta-controller", "var/run/carta"]
+        },
+        "serverInterface": {
+            "description": "Host interface to listen on. If empty, all interfaces are used",
+            "type": "string",
+            "examples": ["localhost", "127.0.0.1"]
         },
         "serverAddress": {
             "description": "Public-facing server address",
@@ -456,6 +463,20 @@
                         "<span>If you would like to access the server, or have any problems, comments or suggestions, please <a href='mailto:test@test.com'>contact us.</a></span>"
                     ]
                 }
+            }
+        }
+    },
+    "if": {
+        "properties": {
+            "serverPort": {
+                "type": "string"
+            }
+        }
+    },
+    "then": {
+        "properties": {
+            "serverInterface": {
+                "type": "null"
             }
         }
     }

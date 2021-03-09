@@ -15,6 +15,8 @@
         "uri": "mongodb://localhost:27017",
         "databaseName": "CARTA"
     },
+    "serverPort": 8000,
+    "serverInterface": "localhost",
     "serverAddress": "https://my-carta-server.com",
     "processCommand": "/usr/local/bin/carta_backend",
     "killCommand": "/usr/local/bin/carta_kill_script.sh",

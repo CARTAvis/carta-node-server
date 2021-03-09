@@ -54,7 +54,9 @@ export interface CartaServerConfig {
         databaseName?: string;
     }
     // Port to listen on. It is advised to listen on a port other than 80 or 443, behind an SSL proxy
-    serverPort: number;
+    serverPort: number | string;
+    // Host interface to listen on. If empty, all interfaces are used
+    serverInterface: string;
     // Public-facing server address
     serverAddress: string;
     // If you need to optionally specify a different API or dashboard address

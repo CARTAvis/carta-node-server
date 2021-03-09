@@ -115,7 +115,16 @@ backendProxy.on("error", (err: any) => {
 
 async function init() {
     await initDB();
-    expressServer.listen(ServerConfig.serverPort, () => console.log(`Started listening for login requests on port ${ServerConfig.serverPort}`));
+    const onListenStart = () => {
+        console.log(`Started listening for login requests on port ${ServerConfig.serverPort}`)
+    };
+
+    // NodeJS Server constructor supports either a port (and optional interface) OR a path
+    if (ServerConfig.serverInterface && typeof ServerConfig.serverPort === "number") {
+        expressServer.listen(ServerConfig.serverPort, ServerConfig.serverInterface, onListenStart);
+    } else {
+        expressServer.listen(ServerConfig.serverPort, onListenStart);
+    }
 }
 
 init().then(() => console.log(chalk.green.bold(`Server initialised successfully at ${ServerConfig.serverAddress}`)));
